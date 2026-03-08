@@ -49,7 +49,7 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen selection:bg-gray-200 selection:text-brand-text">
       <Navbar activePage={currentPage} onNavigate={navigate} />
-      
+
       <main className="transition-opacity duration-500 animate-in fade-in">
         {renderPage()}
       </main>
