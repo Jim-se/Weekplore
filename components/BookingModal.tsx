@@ -62,7 +62,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-brand-bg w-[95%] max-w-[480px] max-h-[90vh] rounded-[32px] shadow-2xl border border-brand-border p-1.5 flex flex-col overflow-hidden">
+      <div className="bg-brand-bg w-[95%] sm:max-w-[850px] max-h-[90vh] rounded-[32px] shadow-2xl border border-brand-border p-1.5 flex flex-col overflow-hidden">
         <div className="bg-white rounded-[26px] overflow-y-auto flex-1 relative scroll-smooth no-scrollbar">
           {/* Header - Sticky with gradient */}
           <div className="sticky top-0 z-20 px-6 md:px-10 pt-6 pb-16 flex justify-between items-start bg-gradient-to-b from-white via-white/95 to-transparent pointer-events-none">
@@ -91,7 +91,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-4">
                 <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">1. Select Shift</label>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {event.shifts?.map((shift) => {
                     const isFull = shift.is_full || shift.booked_spots >= shift.capacity;
                     const timeStr = (() => {
@@ -208,7 +208,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                       Total: {formData.products?.reduce((acc, p) => acc + p.quantity, 0) || 0} / {formData.numberOfPeople}
                     </span>
                   </div>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {event.products.map((product, index) => {
                       const selectedProduct = formData.products?.find(p => p.product_id === product.id);
                       const currentQty = selectedProduct?.quantity || 0;
@@ -216,9 +216,9 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
 
                       return (
                         <div key={product.id} className="p-4 rounded-2xl border border-brand-border bg-brand-bg/10">
-                          <div className="flex gap-4 mb-3">
+                          <div className="flex gap-3 mb-3">
                             {product.image_url && (
-                              <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border border-brand-border">
+                              <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-brand-border">
                                 <img
                                   src={product.image_url}
                                   alt=""
@@ -227,14 +227,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                                 />
                               </div>
                             )}
-                            <div className="flex-1">
-                              <div className="flex justify-between items-start">
-                                <h4 className="text-[11px] font-bold uppercase tracking-widest text-brand-text">{product.title}</h4>
-                                <span className="text-[11px] font-bold text-brand-text">
-                                  {isFirstProduct ? <span className="text-brand-gold uppercase tracking-widest">Included</span> : `€${product.price}`}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start gap-2">
+                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-brand-text truncate">{product.title}</h4>
+                                <span className="text-[10px] font-bold text-brand-text flex-shrink-0">
+                                  {isFirstProduct ? <span className="text-brand-gold uppercase tracking-widest text-[8px]">Incl.</span> : `€${product.price}`}
                                 </span>
                               </div>
-                              <p className="text-[10px] text-brand-text/40 leading-tight mt-1">{product.description}</p>
+                              <p className="text-[9px] text-brand-text/40 leading-tight mt-0.5 line-clamp-2">{product.description}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">

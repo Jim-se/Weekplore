@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   ChevronDown,
   List,
-  Download
+  Download,
+  Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -36,6 +37,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
   const [newTemplate, setNewTemplate] = useState({ subject: '', body: '' });
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -156,6 +158,36 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
     link.href = URL.createObjectURL(blob);
     link.download = `email_logs_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
+  };
+
+  const renderPreview = (template: EmailTemplate) => {
+    const dummyData = {
+      name: 'Alexandros',
+      event: 'Sunset Wine Tasting',
+      date: 'Saturday, 15 June 2024 at 18:30',
+      location: 'Gaia Estate, Nemea',
+      people: '2',
+      cancel_url: '#'
+    };
+
+    let html = template.body;
+    // Replace placeholders
+    Object.entries(dummyData).forEach(([key, value]) => {
+      const regex = new RegExp(`{${key}}`, 'g');
+      if (key === 'cancel_url') {
+        const link = `<a href="${value}" style="color: #c0392b; font-weight: bold; text-decoration: underline;">Cancel Reservation</a>`;
+        html = html.replace(regex, link);
+      } else {
+        html = html.replace(regex, value);
+      }
+    });
+
+    // Convert newlines to <br> if not already HTML
+    if (!html.includes('<p>') && !html.includes('<div') && !html.includes('<br')) {
+      html = html.replace(/\n/g, '<br/>');
+    }
+
+    return html;
   };
 
   if (loading && templates.length === 0) {
@@ -368,6 +400,13 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
 
                     <div className="flex gap-1.5 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
+                        onClick={() => setPreviewTemplate(template)}
+                        className="p-2.5 text-brand-text/40 hover:text-brand-gold transition-all"
+                        title="Preview"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => setEditingTemplate(template)}
                         className="p-2.5 text-brand-text/40 hover:text-brand-gold transition-all"
                         title="Edit"
@@ -476,7 +515,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto bg-brand-bg/50 p-6 no-scrollbar">
+              <div className="flex-1 overflow-y-auto bg-brand-bg/50 p-6 scrollbar-hide">
                 {logs.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-brand-text/40 p-10">
                     <Mail className="w-8 h-8 mb-4 opacity-50" />
@@ -531,6 +570,64 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                     </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Preview Modal */}
+      <AnimatePresence>
+        {previewTemplate && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brand-text/60 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-2xl max-h-[90vh] rounded-[32px] overflow-hidden flex flex-col shadow-2xl border border-brand-border"
+            >
+              <div className="bg-brand-bg px-8 py-6 flex justify-between items-center border-b border-brand-border">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+                    <Eye className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold serif-font text-brand-text">Message Preview</h2>
+                    <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-brand-text/40 mt-1">Realistic customer view</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setPreviewTemplate(null)}
+                  className="p-2 hover:bg-brand-text/5 rounded-full transition-colors text-brand-text/40 hover:text-brand-text"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-12 bg-[#fcfbf9] scrollbar-hide">
+                <div className="max-w-xl mx-auto space-y-8">
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/30">Subject</p>
+                    <p className="text-lg font-bold text-brand-text">{previewTemplate.subject.replace(/{event}/g, 'Sunset Wine Tasting')}</p>
+                  </div>
+
+                  <div className="h-[1px] w-full bg-brand-border/50"></div>
+
+                  {/* Rendered Email Body */}
+                  <div
+                    className="prose prose-sm max-w-none text-brand-text serif-font leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: renderPreview(previewTemplate) }}
+                  />
+                </div>
+              </div>
+
+              <div className="p-8 bg-brand-bg/30 border-t border-brand-border flex justify-center">
+                <button
+                  onClick={() => setPreviewTemplate(null)}
+                  className="px-12 py-3 bg-brand-text text-brand-bg rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-brand-gold transition-all"
+                >
+                  Back to Library
+                </button>
               </div>
             </motion.div>
           </div>

@@ -12,27 +12,27 @@ const About: React.FC = () => {
       <div className="space-y-16 text-lg leading-relaxed opacity-80">
         <section className="grid md:grid-cols-2 gap-12 items-center">
           <div>
-           {/* <h2 className="text-3xl serif-font mb-4 italic text-brand-text">Born in the Peloponnese</h2> */}
+            {/* <h2 className="text-3xl serif-font mb-4 italic text-brand-text">Born in the Peloponnese</h2> */}
             <div className="space-y-4">
-             {/* <p className="font-bold">Ποιοι είμαστε</p> */}
+              {/* <p className="font-bold">Ποιοι είμαστε</p> */}
               <p>
-                
-...φέρε στο νου σου μια στιγμή με την παρέα σου.
-Έχετε μαζευτεί όλοι μαζί, παίζετε επιτραπέζια και γελάτε με την ψυχή σας.
-Για λίγο, όλα τα προβλήματα της εβδομάδας εξαφανίζονται και η απλότητα της στιγμής μετατρέπεται σε μια από τις πιο πολύτιμες αναμνήσεις. 
-Από τέτοιες στιγμές αξίζει να γεμίζουν τα Σαββατοκύριακά μας.
-Κι όμως, πόσες φορές έχεις μείνει χωρίς ιδέες ή χωρίς παρέα για το σκ;
-Πόσες φορές ένιωσες ότι η καθημερινότητα σε κουράζει τόσο, που κάθε Σαββατοκύριακο περνάει χωρίς να το απολαμβάνεις πραγματικά;
-Γι’ αυτό υπάρχει η Weekplore.
-Εδώ μπορείς να βρεις δραστηριότητες και events που κάνουν κάθε Σαββατοκύριακο ξεχωριστό!
-</p>
+
+                ...φέρε στο νου σου μια στιγμή με την παρέα σου.
+                Έχετε μαζευτεί όλοι μαζί, παίζετε επιτραπέζια και γελάτε με την ψυχή σας.
+                Για λίγο, όλα τα προβλήματα της εβδομάδας εξαφανίζονται και η απλότητα της στιγμής μετατρέπεται σε μια από τις πιο πολύτιμες αναμνήσεις.
+                Από τέτοιες στιγμές αξίζει να γεμίζουν τα Σαββατοκύριακά μας.
+                Κι όμως, πόσες φορές έχεις μείνει χωρίς ιδέες ή χωρίς παρέα για το σκ;
+                Πόσες φορές ένιωσες ότι η καθημερινότητα σε κουράζει τόσο, που κάθε Σαββατοκύριακο περνάει χωρίς να το απολαμβάνεις πραγματικά;
+                Γι’ αυτό υπάρχει η Weekplore.
+                Εδώ μπορείς να βρεις δραστηριότητες και events που κάνουν κάθε Σαββατοκύριακο ξεχωριστό!
+              </p>
             </div>
           </div>
           <div className="rounded-2xl overflow-hidden aspect-square border border-brand-border">
-            <img 
-              src="https://images.unsplash.com/photo-1516244102917-740b3c20058b?auto=format&fit=crop&q=80&w=600" 
+            <img
+              src="https://images.unsplash.com/photo-1516244102917-740b3c20058b?auto=format&fit=crop&q=80&w=600"
               alt="Greek Scenery"
-              className="w-full h-full object-cover grayscale sepia-[.2]"
+              className="w-full h-full object-cover"
             />
           </div>
         </section>

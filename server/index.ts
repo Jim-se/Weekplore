@@ -513,16 +513,18 @@ app.post('/api/bookings', async (req, res) => {
                     }) : 'TBD';
 
                     // Snippet formatter (includes cancel_url for all booking emails)
-                    const formatEmail = (text: string, recipientName: string, bookingId: number) => {
+                    const formatEmail = (text: string, recipientName: string, bookingId: number, isHtml = false) => {
                         const cancelToken = generateCancelToken(bookingId);
                         const cancelUrl = `${SERVER_URL}/api/cancel-booking/${bookingId}?token=${cancelToken}`;
+                        const cancelLink = isHtml ? `<a href="${cancelUrl}" style="color: #c0392b; font-weight: bold; text-decoration: underline;">Cancel Reservation</a>` : cancelUrl;
+
                         return text
                             .replace(/{name}/g, recipientName)
                             .replace(/{event}/g, event?.title || 'Experience')
                             .replace(/{date}/g, dateStr)
                             .replace(/{location}/g, event?.location_name || 'TBD')
                             .replace(/{people}/g, formData.numberOfPeople.toString())
-                            .replace(/{cancel_url}/g, cancelUrl);
+                            .replace(/{cancel_url}/g, cancelLink);
                     };
 
                     // --- CALCULATE CURRENT TOTALS FOR EMAIL TRIGGER ---
@@ -547,16 +549,17 @@ app.post('/api/bookings', async (req, res) => {
                     }
 
                     if (templateToUse) {
-                        const body = formatEmail(templateToUse.body, formData.fullName, booking.id);
-                        const subject = formatEmail(templateToUse.subject, formData.fullName, booking.id);
+                        const textBody = formatEmail(templateToUse.body, formData.fullName, booking.id, false);
+                        const htmlBody = formatEmail(templateToUse.body, formData.fullName, booking.id, true).replace(/\n/g, '<br>');
+                        const subject = formatEmail(templateToUse.subject, formData.fullName, booking.id, false);
 
                         try {
                             const { error: sendError } = await resend.emails.send({
                                 from: process.env.EMAIL_FROM || 'info@weekplore.gr',
                                 to: formData.email,
                                 subject: subject,
-                                text: body,
-                                html: body.replace(/\n/g, '<br>'),
+                                text: textBody,
+                                html: htmlBody,
                             });
 
                             if (sendError) throw sendError;
@@ -610,16 +613,17 @@ app.post('/api/bookings', async (req, res) => {
                             const previousBookings = allShiftBookings.filter(b => b.id !== booking.id);
 
                             for (const b of previousBookings) {
-                                const sub = formatEmail(paymentInvitationTemplate.subject, b.full_name, b.id);
-                                const msg = formatEmail(paymentInvitationTemplate.body, b.full_name, b.id);
+                                const sub = formatEmail(paymentInvitationTemplate.subject, b.full_name, b.id, false);
+                                const textMsg = formatEmail(paymentInvitationTemplate.body, b.full_name, b.id, false);
+                                const htmlMsg = formatEmail(paymentInvitationTemplate.body, b.full_name, b.id, true).replace(/\n/g, '<br>');
 
                                 try {
                                     await resend.emails.send({
                                         from: process.env.EMAIL_FROM || 'info@weekplore.gr',
                                         to: b.email,
                                         subject: sub,
-                                        text: msg,
-                                        html: msg.replace(/\n/g, '<br>'),
+                                        text: textMsg,
+                                        html: htmlMsg,
                                     });
 
                                     await supabase.from('email_logs').insert([{

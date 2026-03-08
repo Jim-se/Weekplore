@@ -1,7 +1,6 @@
 import { WeekploreEvent, BookingFormData } from '../types';
 import { supabase } from '../lib/supabase';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://weekplore-server-production.up.railway.app';
+import { buildApiUrl, getErrorMessage } from './api';
 
 const getAuthHeaders = async (contentType = true) => {
   const { data: { session } } = await supabase.auth.getSession();
@@ -15,32 +14,29 @@ const getAuthHeaders = async (contentType = true) => {
 
 export const eventService = {
   async getEvents() {
-    const response = await fetch(`${API_BASE_URL}/api/events`);
+    const response = await fetch(buildApiUrl('/api/events'));
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch events');
+      throw new Error(await getErrorMessage(response, 'Failed to fetch events'));
     }
     return await response.json() as WeekploreEvent[];
   },
 
   async getEventBySlug(slug: string) {
-    const response = await fetch(`${API_BASE_URL}/api/events/${slug}`);
+    const response = await fetch(buildApiUrl(`/api/events/${slug}`));
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch event');
+      throw new Error(await getErrorMessage(response, 'Failed to fetch event'));
     }
     return await response.json() as WeekploreEvent;
   },
 
   async createBooking(eventId: number, formData: BookingFormData) {
-    const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+    const response = await fetch(buildApiUrl('/api/bookings'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ eventId, formData })
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create booking');
+      throw new Error(await getErrorMessage(response, 'Failed to create booking'));
     }
     return await response.json();
   },
@@ -103,65 +99,60 @@ export const eventService = {
 
   async createEvent(eventData: Partial<WeekploreEvent>, imageUrls: string[], shifts: any[] = [], products: any[] = []) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/events`, {
+    const response = await fetch(buildApiUrl('/api/admin/events'), {
       method: 'POST',
       headers,
       body: JSON.stringify({ eventData, imageUrls, shifts, products })
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to create event');
+      throw new Error(await getErrorMessage(response, 'Failed to create event'));
     }
     return await response.json();
   },
 
   async updateEvent(eventId: number, eventData: Partial<WeekploreEvent>) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/events/${eventId}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/events/${eventId}`), {
       method: 'PUT',
       headers,
       body: JSON.stringify(eventData)
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update event');
+      throw new Error(await getErrorMessage(response, 'Failed to update event'));
     }
     return await response.json();
   },
 
   async deleteEvent(eventId: number) {
     const headers = await getAuthHeaders(false);
-    const response = await fetch(`${API_BASE_URL}/api/admin/events/${eventId}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/events/${eventId}`), {
       method: 'DELETE',
       headers
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to delete event');
+      throw new Error(await getErrorMessage(response, 'Failed to delete event'));
     }
     return await response.json();
   },
 
   async addShift(eventId: number, shiftData: any) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/shifts`, {
+    const response = await fetch(buildApiUrl('/api/admin/shifts'), {
       method: 'POST',
       headers,
       body: JSON.stringify({ ...shiftData, event_id: eventId })
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to add shift');
+      throw new Error(await getErrorMessage(response, 'Failed to add shift'));
     }
     return await response.json();
   },
 
   async getAdminEvents() {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/events`, { headers });
+    const response = await fetch(buildApiUrl('/api/admin/events'), { headers });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to fetch admin events');
+      throw new Error(await getErrorMessage(response, 'Failed to fetch admin events'));
     }
     return await response.json();
   },
@@ -171,153 +162,147 @@ export const eventService = {
     // Actually let's assume it exists or use a generic update
     // Wait, I should add it to the server!
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/bookings/status`, {
+    const response = await fetch(buildApiUrl('/api/admin/bookings/status'), {
       method: 'PATCH',
       headers,
       body: JSON.stringify({ bookingIds, status })
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update booking status');
+      throw new Error(await getErrorMessage(response, 'Failed to update booking status'));
     }
   },
 
   async updateShift(shiftId: number, shiftData: any) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/shifts/${shiftId}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/shifts/${shiftId}`), {
       method: 'PUT',
       headers,
       body: JSON.stringify(shiftData)
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update shift');
+      throw new Error(await getErrorMessage(response, 'Failed to update shift'));
     }
     return await response.json();
   },
 
   async deleteShift(shiftId: number) {
     const headers = await getAuthHeaders(false);
-    const response = await fetch(`${API_BASE_URL}/api/admin/shifts/${shiftId}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/shifts/${shiftId}`), {
       method: 'DELETE',
       headers
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to delete shift');
+      throw new Error(await getErrorMessage(response, 'Failed to delete shift'));
     }
     return await response.json();
   },
 
   async addProduct(eventId: number, productData: any) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/products`, {
+    const response = await fetch(buildApiUrl('/api/admin/products'), {
       method: 'POST',
       headers,
       body: JSON.stringify({ ...productData, event_id: eventId })
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to add product');
+      throw new Error(await getErrorMessage(response, 'Failed to add product'));
     }
     return await response.json();
   },
 
   async updateProduct(productId: string, productData: any) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/products/${productId}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/products/${productId}`), {
       method: 'PUT',
       headers,
       body: JSON.stringify(productData)
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to update product');
+      throw new Error(await getErrorMessage(response, 'Failed to update product'));
     }
     return await response.json();
   },
 
   async deleteProduct(productId: string) {
     const headers = await getAuthHeaders(false);
-    const response = await fetch(`${API_BASE_URL}/api/admin/products/${productId}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/products/${productId}`), {
       method: 'DELETE',
       headers
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to delete product');
+      throw new Error(await getErrorMessage(response, 'Failed to delete product'));
     }
     return await response.json();
   },
 
   async getReviews() {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/reviews`, { headers });
-    if (!response.ok) throw new Error('Failed to fetch reviews');
+    const response = await fetch(buildApiUrl('/api/admin/reviews'), { headers });
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to fetch reviews'));
     return await response.json();
   },
 
   async getVisibleReviews() {
-    const response = await fetch(`${API_BASE_URL}/api/reviews/visible`);
-    if (!response.ok) throw new Error('Failed to fetch visible reviews');
+    const response = await fetch(buildApiUrl('/api/reviews/visible'));
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to fetch visible reviews'));
     return await response.json();
   },
 
   async updateReviewStatus(reviewId: string, status: string) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/reviews/${reviewId}/status`, {
+    const response = await fetch(buildApiUrl(`/api/admin/reviews/${reviewId}/status`), {
       method: 'PATCH',
       headers,
       body: JSON.stringify({ status })
     });
-    if (!response.ok) throw new Error('Failed to update review status');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to update review status'));
   },
 
   async createReview(reviewData: any) {
-    const response = await fetch(`${API_BASE_URL}/api/reviews`, {
+    const response = await fetch(buildApiUrl('/api/reviews'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(reviewData)
     });
-    if (!response.ok) throw new Error('Failed to create review');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to create review'));
     return await response.json();
   },
 
   async getPeople() {
-    const response = await fetch(`${API_BASE_URL}/api/people`);
-    if (!response.ok) throw new Error('Failed to fetch people');
+    const response = await fetch(buildApiUrl('/api/people'));
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to fetch people'));
     return await response.json();
   },
 
   async addPerson(personData: any) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/people`, {
+    const response = await fetch(buildApiUrl('/api/admin/people'), {
       method: 'POST',
       headers,
       body: JSON.stringify(personData)
     });
-    if (!response.ok) throw new Error('Failed to add person');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to add person'));
     return await response.json();
   },
 
   async updatePerson(personId: string, personData: any) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/people/${personId}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/people/${personId}`), {
       method: 'PUT',
       headers,
       body: JSON.stringify(personData)
     });
-    if (!response.ok) throw new Error('Failed to update person');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to update person'));
     return await response.json();
   },
 
   async deletePerson(personId: string) {
     const headers = await getAuthHeaders(false);
-    const response = await fetch(`${API_BASE_URL}/api/admin/people/${personId}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/people/${personId}`), {
       method: 'DELETE',
       headers
     });
-    if (!response.ok) throw new Error('Failed to delete person');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to delete person'));
     return await response.json();
   },
 

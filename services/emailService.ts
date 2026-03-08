@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://weekplore-server-production.up.railway.app';
+import { buildApiUrl, getErrorMessage } from './api';
 
 const getAuthHeaders = async (contentType = true) => {
   const { data: { session } } = await supabase.auth.getSession();
@@ -42,69 +41,67 @@ export interface EmailLog {
 export const emailService = {
   async getLogs() {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/email-logs`, { headers });
-    if (!response.ok) throw new Error('Failed to fetch logs');
+    const response = await fetch(buildApiUrl('/api/admin/email-logs'), { headers });
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to fetch logs'));
     return await response.json() as EmailLog[];
   },
 
   async getTemplates() {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/email-templates`, { headers });
-    if (!response.ok) throw new Error('Failed to fetch templates');
+    const response = await fetch(buildApiUrl('/api/admin/email-templates'), { headers });
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to fetch templates'));
     return await response.json() as EmailTemplate[];
   },
 
   async createTemplate(template: Pick<EmailTemplate, 'subject' | 'body'>) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/email-templates`, {
+    const response = await fetch(buildApiUrl('/api/admin/email-templates'), {
       method: 'POST',
       headers,
       body: JSON.stringify(template)
     });
-    if (!response.ok) throw new Error('Failed to create template');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to create template'));
     return await response.json() as EmailTemplate;
   },
 
   async updateTemplate(id: string | number, template: Partial<Pick<EmailTemplate, 'subject' | 'body'>>) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/email-templates/${id}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/email-templates/${id}`), {
       method: 'PUT',
       headers,
       body: JSON.stringify(template)
     });
-    if (!response.ok) throw new Error('Failed to update template');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to update template'));
     return await response.json() as EmailTemplate;
   },
 
   async deleteTemplate(id: string | number) {
     const headers = await getAuthHeaders(false);
-    const response = await fetch(`${API_BASE_URL}/api/admin/email-templates/${id}`, {
+    const response = await fetch(buildApiUrl(`/api/admin/email-templates/${id}`), {
       method: 'DELETE',
       headers
     });
-    if (!response.ok) throw new Error('Failed to delete template');
+    if (!response.ok) throw new Error(await getErrorMessage(response, 'Failed to delete template'));
   },
 
   async getPurposes() {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/email-purposes`, { headers });
+    const response = await fetch(buildApiUrl('/api/admin/email-purposes'), { headers });
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to fetch email purposes');
+      throw new Error(await getErrorMessage(response, 'Failed to fetch email purposes'));
     }
     return await response.json() as EmailPurpose[];
   },
 
   async updatePurpose(purposeId: string, templateId: string | number | null) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE_URL}/api/admin/email-purposes`, {
+    const response = await fetch(buildApiUrl('/api/admin/email-purposes'), {
       method: 'PUT',
       headers,
       body: JSON.stringify({ purpose: purposeId, templateId })
     });
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'Failed to update email purpose');
+      throw new Error(await getErrorMessage(response, 'Failed to update email purpose'));
     }
     return await response.json();
   },

@@ -82,14 +82,14 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                 Elevated recreational experiences in the heart of Messinia. We curate moments of tranquility and adventure for the modern explorer.
               </p>
               <div className="flex flex-wrap gap-6">
-                <button 
+                <button
                   onClick={() => onNavigate('events')}
                   className="group relative px-12 py-5 bg-brand-text text-brand-bg overflow-hidden transition-all duration-500 hover:shadow-2xl rounded-full"
                 >
                   <div className="absolute inset-0 bg-brand-gold translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
                   <span className="relative z-10 uppercase text-xs font-bold tracking-[0.3em]">Discover Events</span>
                 </button>
-                <button 
+                <button
                   onClick={() => onNavigate('about')}
                   className="px-12 py-5 border border-brand-text/20 hover:border-brand-text uppercase text-xs font-bold tracking-[0.3em] transition-all rounded-full"
                 >
@@ -102,10 +102,10 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
           <div className="lg:col-span-5 relative">
             <div className="relative z-10 aspect-[3/4] rounded-[60px] overflow-hidden shadow-2xl">
               <AnimatePresence mode="wait">
-                <motion.img 
+                <motion.img
                   key={currentHero}
-                  src={HERO_IMAGES[currentHero]} 
-                  alt="Weekplore Experience" 
+                  src={HERO_IMAGES[currentHero]}
+                  alt="Weekplore Experience"
                   initial={{ opacity: 0, scale: 1.1 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0 }}
@@ -113,25 +113,24 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                   className="w-full h-full object-cover"
                 />
               </AnimatePresence>
-              
+
               {/* Carousel Controls */}
               <div className="absolute bottom-10 left-10 flex gap-3 z-20">
                 {HERO_IMAGES.map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentHero(idx)}
-                    className={`h-1.5 rounded-full transition-all duration-500 ${
-                      currentHero === idx ? 'w-10 bg-white' : 'w-2 bg-white/40'
-                    }`}
+                    className={`h-1.5 rounded-full transition-all duration-500 ${currentHero === idx ? 'w-10 bg-white' : 'w-2 bg-white/40'
+                      }`}
                   />
                 ))}
               </div>
             </div>
-            
+
             <div className="absolute -bottom-10 -left-10 z-20 aspect-square w-48 rounded-3xl overflow-hidden shadow-xl -rotate-6 hidden md:block">
-              <img 
-                src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&q=80&w=600" 
-                alt="Wine" 
+              <img
+                src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&q=80&w=600"
+                alt="Wine"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -148,7 +147,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       {/* Feature Row / Ticker */}
       <section className="bg-brand-text py-12 text-brand-bg/60 overflow-hidden border-y border-brand-border/10">
         <div className="flex whitespace-nowrap animate-marquee gap-12 text-xs uppercase tracking-[0.6em] font-bold">
-          {[1,2,3,4].map(i => (
+          {[1, 2, 3, 4].map(i => (
             <React.Fragment key={i}>
               <span className="flex items-center gap-4 text-brand-bg">
                 <svg className="w-4 h-4 text-brand-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" /></svg>
@@ -199,15 +198,15 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
           <div className="flex flex-wrap justify-center gap-8 px-6 pb-8">
             {visibleReviews.map((review) => (
-              <div 
+              <div
                 key={review.id}
                 className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.33%-1.5rem)] max-w-[400px] bg-white p-10 rounded-[40px] border border-brand-border shadow-sm hover:shadow-xl transition-all duration-500"
               >
                 <div className="flex gap-1 mb-6">
                   {[...Array(5)].map((_, starIdx) => (
-                    <Star 
-                      key={starIdx} 
-                      className={`w-3.5 h-3.5 ${starIdx < review.start ? 'text-brand-gold fill-brand-gold' : 'text-brand-border'}`} 
+                    <Star
+                      key={starIdx}
+                      className={`w-3.5 h-3.5 ${starIdx < review.start ? 'text-brand-gold fill-brand-gold' : 'text-brand-border'}`}
                     />
                   ))}
                 </div>
@@ -253,7 +252,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
             <div className="flex flex-wrap justify-center gap-8">
               {people.map((person, i) => (
-                <motion.div 
+                <motion.div
                   key={person.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -262,10 +261,10 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                   className="group w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-[300px]"
                 >
                   <div className="relative aspect-[4/5] rounded-[40px] overflow-hidden mb-8 shadow-lg group-hover:shadow-2xl transition-all duration-500">
-                    <img 
-                      src={person.photo_link || 'https://picsum.photos/seed/person/400/500'} 
-                      alt={person.name} 
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-100 group-hover:scale-110"
+                    <img
+                      src={person.photo_link || 'https://picsum.photos/seed/person/400/500'}
+                      alt={person.name}
+                      className="w-full h-full object-cover transition-all duration-700 scale-100 group-hover:scale-110"
                       referrerPolicy="no-referrer"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-brand-text/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-8">
@@ -291,26 +290,26 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       <section className="py-32 px-6 max-w-7xl mx-auto w-full">
         <div className="grid lg:grid-cols-2 gap-24 items-center">
           <div className="order-2 lg:order-1 relative">
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <div className="aspect-square bg-brand-terracotta/10 rounded-3xl overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="aspect-[4/5] bg-brand-gold/10 rounded-3xl overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1544551763-47a0159f963f?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" />
-                  </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div className="aspect-square bg-brand-terracotta/10 rounded-3xl overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" />
                 </div>
-                <div className="pt-12 space-y-4">
-                  <div className="aspect-[3/4] bg-brand-sage/10 rounded-3xl overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1516244102917-740b3c20058b?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" />
-                  </div>
-                  <div className="aspect-square bg-brand-text/5 rounded-3xl overflow-hidden">
-                    <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" />
-                  </div>
+                <div className="aspect-[4/5] bg-brand-gold/10 rounded-3xl overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1544551763-47a0159f963f?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" />
                 </div>
-             </div>
+              </div>
+              <div className="pt-12 space-y-4">
+                <div className="aspect-[3/4] bg-brand-sage/10 rounded-3xl overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1516244102917-740b3c20058b?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" />
+                </div>
+                <div className="aspect-square bg-brand-text/5 rounded-3xl overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&q=80&w=400" className="w-full h-full object-cover" />
+                </div>
+              </div>
+            </div>
           </div>
-          
+
           <div className="order-1 lg:order-2 space-y-10">
             <span className="text-brand-gold font-bold text-xs uppercase tracking-[0.4em]">Our Ethos</span>
             <h2 className="text-6xl md:text-7xl serif-font italic leading-tight text-brand-text">The Art of <br /> Greek Leisure.</h2>
@@ -352,7 +351,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
           <div className="bg-white p-8 md:p-12 rounded-[40px] border border-brand-border shadow-xl">
             {submitted ? (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="text-center py-12"
@@ -362,7 +361,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                 </div>
                 <h3 className="text-2xl font-bold serif-font mb-2">Thank You!</h3>
                 <p className="text-brand-text/60">Your review has been submitted and is pending moderation.</p>
-                <button 
+                <button
                   onClick={() => setSubmitted(false)}
                   className="mt-8 text-brand-gold font-bold uppercase tracking-widest text-[10px] hover:underline"
                 >
@@ -374,11 +373,11 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                 <div className="grid md:grid-cols-2 gap-8">
                   <div className="space-y-2">
                     <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Email Address</label>
-                    <input 
+                    <input
                       required
                       type="email"
                       value={reviewForm.email}
-                      onChange={e => setReviewForm({...reviewForm, email: e.target.value})}
+                      onChange={e => setReviewForm({ ...reviewForm, email: e.target.value })}
                       className="w-full px-0 py-3 bg-transparent border-b border-brand-border outline-none focus:border-brand-gold transition-colors text-lg serif-font"
                       placeholder="your@email.com"
                     />
@@ -390,11 +389,11 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                         <button
                           key={star}
                           type="button"
-                          onClick={() => setReviewForm({...reviewForm, start: star})}
+                          onClick={() => setReviewForm({ ...reviewForm, start: star })}
                           className="transition-transform hover:scale-110"
                         >
-                          <Star 
-                            className={`w-6 h-6 ${star <= reviewForm.start ? 'text-brand-gold fill-brand-gold' : 'text-brand-border'}`} 
+                          <Star
+                            className={`w-6 h-6 ${star <= reviewForm.start ? 'text-brand-gold fill-brand-gold' : 'text-brand-border'}`}
                           />
                         </button>
                       ))}
@@ -404,17 +403,17 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
                 <div className="space-y-2">
                   <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Your Experience</label>
-                  <textarea 
+                  <textarea
                     required
                     value={reviewForm.review}
-                    onChange={e => setReviewForm({...reviewForm, review: e.target.value})}
+                    onChange={e => setReviewForm({ ...reviewForm, review: e.target.value })}
                     className="w-full px-0 py-3 bg-transparent border-b border-brand-border outline-none focus:border-brand-gold transition-colors text-lg serif-font min-h-[120px] resize-none"
                     placeholder="Tell us about your weekend..."
                   />
                 </div>
 
                 <div className="pt-4">
-                  <button 
+                  <button
                     type="submit"
                     disabled={isSubmitting}
                     className="w-full md:w-auto px-12 py-5 bg-brand-text text-brand-bg rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-brand-gold transition-all flex items-center justify-center gap-3 disabled:opacity-50"
