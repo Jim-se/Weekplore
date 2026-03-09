@@ -70,6 +70,14 @@ export interface Person {
   photo_link: string | null;
 }
 
+export interface PrivateEvent {
+  id: string;
+  created_at: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+}
+
 export interface BookingFormData {
   fullName: string;
   phone: string;

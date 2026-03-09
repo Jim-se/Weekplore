@@ -45,11 +45,11 @@ const Events: React.FC = () => {
     if (!selectedEvent) return;
     try {
       await eventService.createBooking(selectedEvent.id, data);
-      setMessage({ type: 'success', text: `Thank you ${data.fullName}! Your reservation for ${selectedEvent.title} is confirmed.` });
+      setMessage({ type: 'success', text: `Ευχαριστούμε ${data.fullName}! Η κράτησή σας για το ${selectedEvent.title} επιβεβαιώθηκε.` });
       setSelectedEvent(null);
     } catch (error) {
       console.error('Booking error:', error);
-      setMessage({ type: 'error', text: 'There was an error processing your booking. Please try again.' });
+      setMessage({ type: 'error', text: 'Υπήρξε ένα σφάλμα κατά την επεξεργασία της κράτησής σας. Παρακαλώ δοκιμάστε ξανά.' });
     }
   };
 
@@ -60,14 +60,14 @@ const Events: React.FC = () => {
   return (
     <>
       <MessageDisplay message={message} setMessage={setMessage} />
-      <div className="max-w-7xl mx-auto px-4 md:px-6 pt-14 pb-20 min-h-screen">
-        <header className="mb-13 md:mb-20 text-center">
+      <div className="events-page mx-auto min-h-screen max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-14">
+        <header className="mb-12 text-center md:mb-20">
           <div className="flex justify-center mb-1">
             <svg className="w-10 h-10 text-brand-gold" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" />
             </svg>
           </div>
-          <h1 className="text-5xl md:text-8xl font-bold serif-font mb-6 italic tracking-tight">Upcoming Events</h1>
+          <h1 className="text-5xl md:text-8xl font-bold serif-font mb-6 italic tracking-tight">Επόμενες Εκδηλώσεις</h1>
           {/* <p className="text-xl opacity-60 font-light max-w-2xl mx-auto">Thoughtfully designed experiences for the discerning traveler. Limited availability per shift.</p> */}
 
           {/*  <div className="flex overflow-x-auto md:justify-center gap-3 md:gap-4 mt-12 pb-4 px-2 scrollbar-hide snap-x">
@@ -92,7 +92,7 @@ const Events: React.FC = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-gold"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 min-[1200px]:grid-cols-3 gap-8 md:gap-12 lg:gap-16">
+          <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 md:gap-10 lg:gap-12 min-[1200px]:grid-cols-3">
             {filteredEvents.map(event => (
               <EventCard
                 key={event.id}
@@ -111,6 +111,14 @@ const Events: React.FC = () => {
             onSubmit={handleBookingSubmit}
           />
         )}
+        <style>{`
+          @media (max-width: 640px) {
+            .events-page h1 {
+              font-size: 2.75rem;
+              line-height: 0.95;
+            }
+          }
+        `}</style>
       </div>
     </>
   );

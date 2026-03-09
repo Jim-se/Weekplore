@@ -330,6 +330,20 @@ app.get('/api/events/:slug', async (req, res) => {
     }
 });
 
+app.get('/api/private-events', async (_req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('private_events')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // --- BOOKINGS ---
 
 app.post('/api/bookings', async (req, res) => {
@@ -698,6 +712,20 @@ app.get('/api/admin/events', requireAdmin, async (req, res) => {
     }
 });
 
+app.get('/api/admin/private-events', requireAdmin, async (_req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('private_events')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.post('/api/admin/validate-event', requireAdmin, (req, res) => {
     const data = req.body;
     const errors: string[] = [];
@@ -841,6 +869,71 @@ app.delete('/api/admin/events/:id', requireAdmin, async (req, res) => {
         }
         await supabase.from('products').delete().eq('event_id', eventId);
         const { error } = await supabase.from('events').delete().eq('id', eventId);
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/admin/private-events', requireAdmin, async (req, res) => {
+    try {
+        const safePrivateEvent = pickDefined(req.body || {}, [
+            'name',
+            'description',
+            'image_url',
+        ]);
+
+        if (!isNonEmptyString(safePrivateEvent.name)) {
+            return res.status(400).json({ error: 'Private event name is required.' });
+        }
+
+        const { data, error } = await supabase
+            .from('private_events')
+            .insert([safePrivateEvent])
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/admin/private-events/:id', requireAdmin, async (req, res) => {
+    try {
+        const safePrivateEvent = pickDefined(req.body || {}, [
+            'name',
+            'description',
+            'image_url',
+        ]);
+
+        if (Object.keys(safePrivateEvent).length === 0) {
+            return res.status(400).json({ error: 'No valid private event fields provided.' });
+        }
+
+        const { data, error } = await supabase
+            .from('private_events')
+            .update(safePrivateEvent)
+            .eq('id', req.params.id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/admin/private-events/:id', requireAdmin, async (req, res) => {
+    try {
+        const { error } = await supabase
+            .from('private_events')
+            .delete()
+            .eq('id', req.params.id);
+
         if (error) throw error;
         res.json({ success: true });
     } catch (error: any) {

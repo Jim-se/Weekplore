@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { eventService } from '../services/eventService';
-import { WeekploreEvent, Shift } from '../types';
+import { WeekploreEvent, Shift, PrivateEvent } from '../types';
 import {
   Plus,
   LayoutDashboard,
@@ -99,10 +99,12 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'email_templates' | 'reviews' | 'people'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'private_events' | 'email_templates' | 'reviews' | 'people'>('dashboard');
   const [events, setEvents] = useState<any[]>([]);
+  const [privateEvents, setPrivateEvents] = useState<PrivateEvent[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [people, setPeople] = useState<any[]>([]);
+  const [newPrivateEvent, setNewPrivateEvent] = useState({ name: '', description: '', image_url: '' });
   const [isAddingPerson, setIsAddingPerson] = useState(false);
   const [newPerson, setNewPerson] = useState({ name: '', description: '', photo_link: '' });
   const [editingPerson, setEditingPerson] = useState<any | null>(null);
@@ -231,9 +233,19 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     }
   };
 
+  const fetchPrivateEvents = async () => {
+    try {
+      const data = await eventService.getAdminPrivateEvents();
+      setPrivateEvents(data);
+    } catch (error) {
+      console.error('Error fetching private events:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       if (activeTab === 'dashboard') fetchEvents();
+      if (activeTab === 'private_events') fetchPrivateEvents();
       if (activeTab === 'reviews') fetchReviews();
       if (activeTab === 'people') fetchPeople();
     }
@@ -295,6 +307,68 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
       setMessage({ type: 'success', text: 'Person deleted!' });
       setDeletingPerson(null);
       fetchPeople();
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handlePrivateEventImageUpload = async (file: File, privateEventId?: string) => {
+    try {
+      setUploading(true);
+      const imageUrl = await eventService.uploadPrivateEventImage(file);
+
+      if (privateEventId) {
+        await eventService.updatePrivateEvent(privateEventId, { image_url: imageUrl });
+        setMessage({ type: 'success', text: 'Private event image uploaded!' });
+        fetchPrivateEvents();
+        return;
+      }
+
+      setNewPrivateEvent((prev) => ({ ...prev, image_url: imageUrl }));
+      setMessage({ type: 'success', text: 'Private event image uploaded!' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleCreatePrivateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPrivateEvent.name.trim()) {
+      setMessage({ type: 'error', text: 'Private event name is required.' });
+      return;
+    }
+
+    try {
+      await eventService.createPrivateEvent({
+        name: newPrivateEvent.name.trim(),
+        description: newPrivateEvent.description.trim() || null,
+        image_url: newPrivateEvent.image_url.trim() || null
+      });
+      setMessage({ type: 'success', text: 'Private event created!' });
+      setNewPrivateEvent({ name: '', description: '', image_url: '' });
+      fetchPrivateEvents();
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handleUpdatePrivateEvent = async (privateEventId: string, data: Partial<Pick<PrivateEvent, 'name' | 'description' | 'image_url'>>) => {
+    try {
+      await eventService.updatePrivateEvent(privateEventId, data);
+      setMessage({ type: 'success', text: 'Private event updated!' });
+      fetchPrivateEvents();
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handleDeletePrivateEvent = async (privateEventId: string) => {
+    try {
+      await eventService.deletePrivateEvent(privateEventId);
+      setMessage({ type: 'success', text: 'Private event removed!' });
+      fetchPrivateEvents();
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
     }
@@ -667,6 +741,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
             >
               <Plus className="w-5 h-5" />
               <span className="text-sm">Add Event</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('private_events')}
+              className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'private_events' ? 'bg-brand-bg text-brand-gold font-bold shadow-sm' : 'text-brand-text/60 hover:bg-brand-bg'}`}
+            >
+              <Star className="w-5 h-5" />
+              <span className="text-sm">Private Events</span>
             </button>
             <button
               onClick={() => setActiveTab('email_templates')}
@@ -1136,6 +1217,137 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                   {uploading ? 'Uploading Images...' : 'Finalize & Create Event'}
                 </button>
               </form>
+            </div>
+          ) : activeTab === 'private_events' ? (
+            <div className="space-y-10">
+              <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h1 className="text-4xl font-bold serif-font">Private Events</h1>
+                  <p className="mt-2 text-xs font-bold uppercase tracking-widest text-brand-text/40">Add, edit, and remove private-event entries</p>
+                </div>
+              </header>
+
+              <form onSubmit={handleCreatePrivateEvent} className="space-y-6 rounded-[32px] border border-brand-border bg-white p-8 shadow-sm">
+                <div className="flex flex-col gap-6 lg:flex-row">
+                  <div className="lg:w-56">
+                    <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[24px] border border-dashed border-brand-border bg-brand-bg/30">
+                      {newPrivateEvent.image_url ? (
+                        <img src={newPrivateEvent.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center text-brand-text/40">
+                          <ImageIcon className="mb-3 h-8 w-8" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Image</span>
+                        </div>
+                      )}
+                      <label className="absolute inset-0 cursor-pointer bg-brand-text/0 transition-all hover:bg-brand-text/10">
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePrivateEventImageUpload(file);
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="grid flex-1 gap-6 md:grid-cols-2">
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-brand-text/40">Name</label>
+                      <input
+                        type="text"
+                        value={newPrivateEvent.name}
+                        onChange={(e) => setNewPrivateEvent({ ...newPrivateEvent, name: e.target.value })}
+                        className="w-full rounded-2xl border border-brand-border px-6 py-4 outline-none transition-all focus:border-brand-gold"
+                        placeholder="Create your own workshop"
+                        required
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-brand-text/40">Description</label>
+                      <textarea
+                        value={newPrivateEvent.description}
+                        onChange={(e) => setNewPrivateEvent({ ...newPrivateEvent, description: e.target.value })}
+                        className="min-h-[120px] w-full rounded-2xl border border-brand-border px-6 py-4 outline-none transition-all focus:border-brand-gold"
+                        placeholder="Short description for the private events page"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={uploading}
+                    className="flex items-center gap-2 rounded-2xl bg-brand-text px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-brand-bg transition-all hover:bg-brand-gold disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Plus className="h-4 w-4" />
+                    {uploading ? 'Uploading...' : 'Add Private Event'}
+                  </button>
+                </div>
+              </form>
+
+              <div className="grid gap-8 md:grid-cols-2">
+                {privateEvents.map((privateEvent) => (
+                  <motion.div
+                    layout
+                    key={privateEvent.id}
+                    className="space-y-5 rounded-[32px] border border-brand-border bg-white p-8 shadow-sm"
+                  >
+                    <div className="relative aspect-[16/10] overflow-hidden rounded-[24px] bg-brand-bg/30">
+                      {privateEvent.image_url ? (
+                        <img src={privateEvent.image_url} alt={privateEvent.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-brand-text/30">
+                          <ImageIcon className="h-10 w-10" />
+                        </div>
+                      )}
+                      <label className="absolute inset-0 cursor-pointer bg-brand-text/0 transition-all hover:bg-brand-text/10">
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePrivateEventImageUpload(file, privateEvent.id);
+                          }}
+                        />
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-brand-text/40">Name</label>
+                      <input
+                        type="text"
+                        defaultValue={privateEvent.name}
+                        onBlur={(e) => handleUpdatePrivateEvent(privateEvent.id, { name: e.target.value })}
+                        className="w-full rounded-2xl border border-brand-border px-5 py-4 outline-none transition-all focus:border-brand-gold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-brand-text/40">Description</label>
+                      <textarea
+                        defaultValue={privateEvent.description || ''}
+                        onBlur={(e) => handleUpdatePrivateEvent(privateEvent.id, { description: e.target.value || null })}
+                        className="min-h-[130px] w-full rounded-2xl border border-brand-border px-5 py-4 outline-none transition-all focus:border-brand-gold"
+                      />
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => handleDeletePrivateEvent(privateEvent.id)}
+                        className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-red-500 transition-all hover:bg-red-500 hover:text-white"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           ) : activeTab === 'reviews' ? (
             <div className="space-y-10">

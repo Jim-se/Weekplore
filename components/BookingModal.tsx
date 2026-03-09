@@ -57,28 +57,28 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brand-text/60 backdrop-blur-md"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-brand-text/60 p-2 backdrop-blur-md sm:items-center sm:p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-brand-bg w-[95%] sm:max-w-[850px] max-h-[90vh] rounded-[32px] shadow-2xl border border-brand-border p-1.5 flex flex-col overflow-hidden">
-        <div className="bg-white rounded-[26px] overflow-y-auto flex-1 relative scroll-smooth no-scrollbar">
+      <div className="flex max-h-[96vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] border border-brand-border bg-brand-bg p-1.5 shadow-2xl sm:max-h-[90vh] sm:w-[95%] sm:rounded-[32px]">
+        <div className="relative flex-1 overflow-y-auto rounded-t-[22px] bg-white scroll-smooth no-scrollbar sm:rounded-[26px]">
           {/* Header - Sticky with gradient */}
-          <div className="sticky top-0 z-20 px-6 md:px-10 pt-6 pb-16 flex justify-between items-start bg-gradient-to-b from-white via-white/95 to-transparent pointer-events-none">
+          <div className="pointer-events-none sticky top-0 z-20 flex items-start justify-between bg-gradient-to-b from-white via-white/95 to-transparent px-4 pb-12 pt-5 sm:px-6 sm:pb-16 md:px-10">
             <div className="pr-4 pointer-events-auto">
-              <span className="text-[9px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-1.5 block">Reservation</span>
-              <h2 className="text-2xl font-bold serif-font leading-tight text-brand-text">{event.title}</h2>
+              <span className="text-[9px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-1.5 block">Κράτηση</span>
+              <h2 className="text-xl font-bold leading-tight text-brand-text serif-font sm:text-2xl">{event.title}</h2>
               <p className="text-[11px] text-brand-text/50 mt-1 uppercase tracking-wider font-medium">
                 {(() => {
                   const d = new Date(event.event_date);
-                  return isNaN(d.getTime()) ? 'Invalid Date' : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+                  return isNaN(d.getTime()) ? 'Μη έγκυρη ημερομηνία' : d.toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
                 })()}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2.5 hover:bg-brand-bg rounded-full transition-colors border border-brand-border bg-white shadow-sm flex-shrink-0 pointer-events-auto"
+              className="pointer-events-auto flex-shrink-0 rounded-full border border-brand-border bg-white p-2.5 shadow-sm transition-colors hover:bg-brand-bg"
               aria-label="Close modal"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -87,23 +87,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
             </button>
           </div>
 
-          <div className="px-6 md:px-10 pb-10 pt-0">
+          <div className="px-4 pb-8 pt-0 sm:px-6 sm:pb-10 md:px-10">
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-4">
-                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">1. Select Shift</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">1. Επιλέξτε Ώρα</label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {event.shifts?.map((shift) => {
                     const isFull = shift.is_full || shift.booked_spots >= shift.capacity;
                     const timeStr = (() => {
                       const start = new Date(shift.start_time);
                       const end = new Date(shift.end_time);
-                      if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Invalid Time';
-                      return `${start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+                      if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Μη έγκυρη ώρα';
+                      return `${start.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })}`;
                     })();
                     return (
                       <label
                         key={shift.id}
-                        className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition-all duration-300 ${isFull
+                        className={`flex min-h-11 items-center justify-between rounded-2xl border p-4 transition-all duration-300 ${isFull
                           ? 'opacity-30 cursor-not-allowed bg-gray-50 border-gray-100'
                           : formData.shiftId === shift.id
                             ? 'border-brand-gold bg-brand-gold/5 ring-1 ring-brand-gold shadow-md'
@@ -125,7 +125,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                           />
                           <span className="font-bold text-xs uppercase tracking-[0.2em]">{timeStr}</span>
                         </div>
-                        {isFull && <span className="text-[9px] uppercase text-brand-text/30 font-bold">Sold Out</span>}
+                        {isFull && <span className="text-[9px] uppercase text-brand-text/30 font-bold">Εξαντλήθηκε</span>}
                       </label>
                     );
                   })}
@@ -133,27 +133,27 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
               </div>
 
               <div className="space-y-6">
-                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">2. Personal details</label>
+                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">2. Προσωπικά στοιχεία</label>
                 <div className="space-y-6">
                   <div className="relative group">
                     <input
                       required
                       type="text"
-                      className="w-full py-3 bg-transparent border-b border-brand-border outline-none focus:border-brand-gold transition-all text-lg serif-font placeholder:text-brand-text/20"
-                      placeholder="Full Name"
+                      className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
+                      placeholder="Ονοματεπώνυμο"
                       value={formData.fullName}
                       onChange={e => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
                     />
                     <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-gold transition-all group-focus-within:w-full" />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div className="relative group">
                       <input
                         required
                         type="tel"
-                        className="w-full py-3 bg-transparent border-b border-brand-border outline-none focus:border-brand-gold transition-all text-lg serif-font placeholder:text-brand-text/20"
-                        placeholder="Phone Number"
+                        className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
+                        placeholder="Αριθμός Τηλεφώνου"
                         value={formData.phone}
                         onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                       />
@@ -163,8 +163,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                       <input
                         required
                         type="email"
-                        className="w-full py-3 bg-transparent border-b border-brand-border outline-none focus:border-brand-gold transition-all text-lg serif-font placeholder:text-brand-text/20"
-                        placeholder="Email Address"
+                        className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
+                        placeholder="Διεύθυνση Email"
                         value={formData.email}
                         onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       />
@@ -173,24 +173,24 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                   </div>
 
                   <div className="pt-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <span className="block text-[10px] uppercase tracking-[0.3em] text-brand-text/40 font-bold mb-1">Number of Guests</span>
-                        <span className="text-xs font-bold text-brand-text uppercase tracking-widest opacity-60">How many people?</span>
+                        <span className="block text-[10px] uppercase tracking-[0.3em] text-brand-text/40 font-bold mb-1">Αριθμός Επισκεπτών</span>
+                        <span className="text-xs font-bold text-brand-text uppercase tracking-widest opacity-60">Πόσα άτομα;</span>
                       </div>
                       <div className="flex items-center gap-4">
                         <button
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, numberOfPeople: Math.max(1, prev.numberOfPeople - 1) }))}
-                          className="w-10 h-10 rounded-xl bg-brand-bg border border-brand-border flex items-center justify-center hover:bg-brand-text hover:text-white transition-all text-lg font-medium"
+                          className="flex h-11 w-11 items-center justify-center rounded-xl border border-brand-border bg-brand-bg text-lg font-medium transition-all hover:bg-brand-text hover:text-white"
                         >
                           −
                         </button>
-                        <span className="w-10 text-center font-bold serif-font text-2xl text-brand-text">{formData.numberOfPeople}</span>
+                        <span className="w-10 text-center text-2xl font-bold text-brand-text serif-font">{formData.numberOfPeople}</span>
                         <button
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, numberOfPeople: Math.min(8, prev.numberOfPeople + 1) }))}
-                          className="w-10 h-10 rounded-xl bg-brand-bg border border-brand-border flex items-center justify-center hover:bg-brand-text hover:text-white transition-all text-lg font-medium"
+                          className="flex h-11 w-11 items-center justify-center rounded-xl border border-brand-border bg-brand-bg text-lg font-medium transition-all hover:bg-brand-text hover:text-white"
                         >
                           +
                         </button>
@@ -203,12 +203,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
               {event.products && event.products.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex justify-between items-end">
-                    <label className="block text-[9px] uppercase tracking-[0.3em] text-brand-text/40 font-bold">3. Select Products</label>
+                    <label className="block text-[9px] uppercase tracking-[0.3em] text-brand-text/40 font-bold">3. Επιλέξτε Προϊόντα</label>
                     <span className="text-[9px] font-bold text-brand-gold uppercase tracking-widest">
-                      Total: {formData.products?.reduce((acc, p) => acc + p.quantity, 0) || 0} / {formData.numberOfPeople}
+                      Σύνολο: {formData.products?.reduce((acc, p) => acc + p.quantity, 0) || 0} / {formData.numberOfPeople}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {event.products.map((product, index) => {
                       const selectedProduct = formData.products?.find(p => p.product_id === product.id);
                       const currentQty = selectedProduct?.quantity || 0;
@@ -231,7 +231,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                               <div className="flex justify-between items-start gap-2">
                                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-brand-text truncate">{product.title}</h4>
                                 <span className="text-[10px] font-bold text-brand-text flex-shrink-0">
-                                  {isFirstProduct ? <span className="text-brand-gold uppercase tracking-widest text-[8px]">Incl.</span> : `€${product.price}`}
+                                  {isFirstProduct ? <span className="text-brand-gold uppercase tracking-widest text-[8px]">Περιλαμβάνεται</span> : `€${product.price}`}
                                 </span>
                               </div>
                               <p className="text-[9px] text-brand-text/40 leading-tight mt-0.5 line-clamp-2">{product.description}</p>
@@ -250,7 +250,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                                   }
                                 }
                               }}
-                              className="w-8 h-8 rounded-full border border-brand-border flex items-center justify-center hover:bg-white transition-colors"
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border transition-colors hover:bg-white"
                             >
                               -
                             </button>
@@ -271,7 +271,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                                   setFormData(prev => ({ ...prev, products }));
                                 }
                               }}
-                              className="w-8 h-8 rounded-full border border-brand-border flex items-center justify-center hover:bg-white transition-colors"
+                            className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border transition-colors hover:bg-white"
                             >
                               +
                             </button>
@@ -282,23 +282,23 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                   </div>
                   {formData.products && formData.products.reduce((acc, p) => acc + p.quantity, 0) !== formData.numberOfPeople && (
                     <p className="text-[9px] text-brand-terracotta font-bold uppercase tracking-widest text-center">
-                      Please select exactly {formData.numberOfPeople} products
+                      Παρακαλώ επιλέξτε ακριβώς {formData.numberOfPeople} προϊόντα
                     </p>
                   )}
                 </div>
               )}
 
               {/* Summary Section */}
-              <div className="pt-6 border-t border-brand-border space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] uppercase tracking-[0.3em] text-brand-text/40 font-bold">Selection Summary</span>
+              <div className="space-y-4 border-t border-brand-border pt-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-[9px] uppercase tracking-[0.3em] text-brand-text/40 font-bold">Σύνοψη Επιλογής</span>
                   <span className="text-[11px] font-bold text-brand-text uppercase tracking-widest">
-                    {formData.numberOfPeople} {formData.numberOfPeople === 1 ? 'Guest' : 'Guests'}
+                    {formData.numberOfPeople} {formData.numberOfPeople === 1 ? 'Επισκέπτης' : 'Επισκέπτες'}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center pt-4">
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand-text">Total Amount</span>
+                <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand-text">Συνολικό Ποσό</span>
                   <span className="text-2xl font-bold serif-font text-brand-gold">
                     €{
                       (formData.numberOfPeople * event.price) +
@@ -315,15 +315,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
               <button
                 type="submit"
                 disabled={isSubmitting || !formData.shiftId || (event.products && event.products.length > 0 && (formData.products?.reduce((acc, p) => acc + p.quantity, 0) || 0) !== formData.numberOfPeople)}
-                className="w-full py-5 bg-brand-text text-brand-bg font-bold uppercase tracking-[0.3em] text-xs rounded-full hover:bg-brand-gold transition-all duration-500 disabled:opacity-50 shadow-lg mt-4 flex items-center justify-center gap-2"
+                className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-text py-4 text-[11px] font-bold uppercase tracking-[0.22em] text-brand-bg shadow-lg transition-all duration-500 hover:bg-brand-gold disabled:opacity-50 sm:py-5 sm:text-xs sm:tracking-[0.3em]"
               >
                 {isSubmitting ? (
                   <>
                     <div className="w-4 h-4 border-2 border-brand-bg/30 border-t-brand-bg rounded-full animate-spin" />
-                    Processing...
+                    Επεξεργασία...
                   </>
                 ) : (
-                  'Confirm Reservation'
+                  'Επιβεβαίωση Κράτησης'
                 )}
               </button>
             </form>

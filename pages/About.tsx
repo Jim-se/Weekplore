@@ -3,14 +3,14 @@ import React from 'react';
 
 const About: React.FC = () => {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-24 min-h-screen">
-      <header className="text-center mb-20">
-        <span className="text-xs uppercase tracking-[0.4em] mb-4 opacity-60 block">Behind the scenes</span>
+    <div className="about-page mx-auto min-h-screen max-w-4xl px-4 py-16 sm:px-6 sm:py-24">
+      <header className="mb-12 text-center sm:mb-20">
+        <span className="text-xs uppercase tracking-[0.4em] mb-4 opacity-60 block">Πίσω από τις κάμερες</span>
         <h1 className="text-6xl md:text-8xl font-bold serif-font mb-8">Ποιοι <span className="italic">Είμαστε</span></h1>
       </header>
 
-      <div className="space-y-16 text-lg leading-relaxed opacity-80">
-        <section className="grid md:grid-cols-2 gap-12 items-center">
+      <div className="space-y-12 text-base leading-relaxed opacity-80 sm:space-y-16 sm:text-lg">
+        <section className="grid gap-8 md:grid-cols-2 md:gap-12 md:items-center">
           <div>
             {/* <h2 className="text-3xl serif-font mb-4 italic text-brand-text">Born in the Peloponnese</h2> */}
             <div className="space-y-4">
@@ -28,7 +28,7 @@ const About: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="rounded-2xl overflow-hidden aspect-square border border-brand-border">
+          <div className="aspect-square overflow-hidden rounded-2xl border border-brand-border">
             <img
               src="https://images.unsplash.com/photo-1516244102917-740b3c20058b?auto=format&fit=crop&q=80&w=600"
               alt="Greek Scenery"
@@ -37,32 +37,46 @@ const About: React.FC = () => {
           </div>
         </section>
 
-        <section className="bg-brand-text text-brand-bg p-12 rounded-3xl">
-          <h2 className="text-4xl serif-font mb-6 italic">The Weekplore Philosophy</h2>
+        <section className="rounded-3xl bg-brand-text p-6 text-brand-bg sm:p-12">
+          <h2 className="text-4xl serif-font mb-6 italic">Η Φιλοσοφία της Weekplore</h2>
           <ul className="space-y-4">
-            <li className="flex gap-4">
+            <li className="flex gap-3 sm:gap-4">
               <span className="font-bold">01.</span>
-              <span><strong>Respect the season:</strong> We only host events that make sense for the current weather and environment.</span>
+              <span><strong>Σεβασμός στην εποχή:</strong> Φιλοξενούμε μόνο εκδηλώσεις που ταιριάζουν με τον τρέχοντα καιρό και το περιβάλλον.</span>
             </li>
-            <li className="flex gap-4">
+            <li className="flex gap-3 sm:gap-4">
               <span className="font-bold">02.</span>
-              <span><strong>Support the locals:</strong> Every picnic basket and every workshop is powered by local producers.</span>
+              <span><strong>Στήριξη στους ντόπιους:</strong> Κάθε καλάθι πικνίκ και κάθε εργαστήριο υποστηρίζεται από τοπικούς παραγωγούς.</span>
             </li>
-            <li className="flex gap-4">
+            <li className="flex gap-3 sm:gap-4">
               <span className="font-bold">03.</span>
-              <span><strong>Keep it small:</strong> We prefer 10 people having a profound experience over 100 having a generic one.</span>
+              <span><strong>Μείνετε σε μικρές ομάδες:</strong> Προτιμάμε 10 άτομα να έχουν μια βαθιά εμπειρία παρά 100 να έχουν μια συνηθισμένη.</span>
             </li>
           </ul>
         </section>
 
-        <section className="text-center pt-10">
-          <h2 className="text-3xl serif-font mb-6 italic">Want to collaborate?</h2>
-          <p className="mb-8">We are always looking for local artisans, farmers, and instructors to join the Weekplore network.</p>
+        <section className="pt-6 text-center sm:pt-10">
+          <h2 className="text-3xl serif-font mb-6 italic">Θέλετε να συνεργαστούμε;</h2>
+          <p className="mb-8">Αναζητούμε πάντα τοπικούς τεχνίτες, αγρότες και εκπαιδευτές για να γίνουν μέλη του δικτύου της Weekplore.</p>
           <a href="mailto:hello@weekplore.gr" className="text-2xl font-bold underline decoration-brand-accent decoration-2 underline-offset-8">
             hello@weekplore.gr
           </a>
         </section>
       </div>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .about-page h1 {
+            font-size: 2.75rem;
+            line-height: 0.95;
+          }
+
+          .about-page h2 {
+            font-size: 1.9rem;
+            line-height: 1.05;
+          }
+        }
+      `}</style>
     </div>
   );
 };

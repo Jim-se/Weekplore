@@ -1,4 +1,4 @@
-import { WeekploreEvent, BookingFormData } from '../types';
+import { WeekploreEvent, BookingFormData, PrivateEvent } from '../types';
 import { supabase } from '../lib/supabase';
 import { buildApiUrl, getErrorMessage } from './api';
 
@@ -27,6 +27,14 @@ export const eventService = {
       throw new Error(await getErrorMessage(response, 'Failed to fetch event'));
     }
     return await response.json() as WeekploreEvent;
+  },
+
+  async getPrivateEvents() {
+    const response = await fetch(buildApiUrl('/api/private-events'));
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to fetch private events'));
+    }
+    return await response.json() as PrivateEvent[];
   },
 
   async createBooking(eventId: number, formData: BookingFormData) {
@@ -153,6 +161,53 @@ export const eventService = {
     const response = await fetch(buildApiUrl('/api/admin/events'), { headers });
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, 'Failed to fetch admin events'));
+    }
+    return await response.json();
+  },
+
+  async getAdminPrivateEvents() {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl('/api/admin/private-events'), { headers });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to fetch private events'));
+    }
+    return await response.json() as PrivateEvent[];
+  },
+
+  async createPrivateEvent(privateEventData: Pick<PrivateEvent, 'name' | 'description' | 'image_url'>) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl('/api/admin/private-events'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(privateEventData)
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to create private event'));
+    }
+    return await response.json() as PrivateEvent;
+  },
+
+  async updatePrivateEvent(privateEventId: string, privateEventData: Partial<Pick<PrivateEvent, 'name' | 'description' | 'image_url'>>) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl(`/api/admin/private-events/${privateEventId}`), {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(privateEventData)
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to update private event'));
+    }
+    return await response.json() as PrivateEvent;
+  },
+
+  async deletePrivateEvent(privateEventId: string) {
+    const headers = await getAuthHeaders(false);
+    const response = await fetch(buildApiUrl(`/api/admin/private-events/${privateEventId}`), {
+      method: 'DELETE',
+      headers
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to delete private event'));
     }
     return await response.json();
   },
@@ -321,6 +376,25 @@ export const eventService = {
 
     const { data } = supabase.storage
       .from('people_images')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  },
+
+  async uploadPrivateEventImage(file: File) {
+    const { supabase } = await import('../lib/supabase');
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `private-events/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('private_event_images')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('private_event_images')
       .getPublicUrl(filePath);
 
     return data.publicUrl;
