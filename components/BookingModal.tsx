@@ -17,9 +17,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
     email: '',
     shiftId: availableShifts[0]?.id || 0,
     numberOfPeople: 1,
-    products: event.products && event.products.length > 0
-      ? [{ product_id: event.products[0].id, quantity: 1 }]
-      : []
+    products: (() => {
+      const defaultProductId = event.products?.find(p => p.price === 0)?.id || event.products?.[0]?.id;
+      return defaultProductId ? [{ product_id: defaultProductId, quantity: 1 }] : [];
+    })()
   });
 
   React.useEffect(() => {
@@ -31,10 +32,11 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
 
   React.useEffect(() => {
     setFormData(prev => {
-      if (event.products && event.products.length > 0) {
+      const defaultProductId = event.products?.find(p => p.price === 0)?.id || event.products?.[0]?.id;
+      if (defaultProductId) {
         return {
           ...prev,
-          products: [{ product_id: event.products[0].id, quantity: prev.numberOfPeople }]
+          products: [{ product_id: defaultProductId, quantity: prev.numberOfPeople }]
         };
       }
       return { ...prev, products: [] };
@@ -212,7 +214,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                     {event.products.map((product, index) => {
                       const selectedProduct = formData.products?.find(p => p.product_id === product.id);
                       const currentQty = selectedProduct?.quantity || 0;
-                      const isFirstProduct = index === 0;
+                      const isFreeProduct = product.price === 0;
 
                       return (
                         <div key={product.id} className="p-4 rounded-2xl border border-brand-border bg-brand-bg/10">
@@ -231,7 +233,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                               <div className="flex justify-between items-start gap-2">
                                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-brand-text truncate">{product.title}</h4>
                                 <span className="text-[10px] font-bold text-brand-text flex-shrink-0">
-                                  {isFirstProduct ? <span className="text-brand-gold uppercase tracking-widest text-[8px]">Περιλαμβάνεται</span> : `€${product.price}`}
+                                  {isFreeProduct ? <span className="text-brand-gold uppercase tracking-widest text-[8px]">Περιλαμβάνεται</span> : `€${product.price}`}
                                 </span>
                               </div>
                               <p className="text-[9px] text-brand-text/40 leading-tight mt-0.5 line-clamp-2">{product.description}</p>
@@ -250,7 +252,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                                   }
                                 }
                               }}
-                            className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border transition-colors hover:bg-white"
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border transition-colors hover:bg-white"
                             >
                               -
                             </button>
@@ -271,7 +273,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                                   setFormData(prev => ({ ...prev, products }));
                                 }
                               }}
-                            className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border transition-colors hover:bg-white"
+                              className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border transition-colors hover:bg-white"
                             >
                               +
                             </button>
@@ -304,8 +306,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                       (formData.numberOfPeople * event.price) +
                       (formData.products?.reduce((acc, p) => {
                         const product = event.products?.find(prod => prod.id === p.product_id);
-                        const isFirstProduct = event.products?.[0]?.id === product?.id;
-                        return acc + (p.quantity * (isFirstProduct ? 0 : (product?.price || 0)));
+                        return acc + (p.quantity * (product?.price || 0));
                       }, 0) || 0)
                     }
                   </span>

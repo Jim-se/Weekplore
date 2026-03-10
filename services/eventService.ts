@@ -174,6 +174,15 @@ export const eventService = {
     return await response.json() as PrivateEvent[];
   },
 
+  async getAdminPrivateEventInquiries() {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl('/api/admin/private-event-inquiries'), { headers });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to fetch private event inquiries'));
+    }
+    return await response.json();
+  },
+
   async createPrivateEvent(privateEventData: Pick<PrivateEvent, 'name' | 'description' | 'image_url'>) {
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl('/api/admin/private-events'), {
@@ -398,5 +407,17 @@ export const eventService = {
       .getPublicUrl(filePath);
 
     return data.publicUrl;
+  },
+
+  async submitPrivateEventInquiry(inquiryData: any) {
+    const response = await fetch(buildApiUrl('/api/private-event-inquiries'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(inquiryData)
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to submit inquiry'));
+    }
+    return await response.json();
   }
 };

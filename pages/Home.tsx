@@ -16,7 +16,7 @@ const HERO_IMAGES = [
 
 const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [currentHero, setCurrentHero] = useState(0);
-  const [reviewForm, setReviewForm] = useState({ email: '', start: 5, review: '' });
+  const [reviewForm, setReviewForm] = useState({ name: '', email: '', start: 5, review: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [visibleReviews, setVisibleReviews] = useState<any[]>([]);
@@ -51,7 +51,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
     try {
       await eventService.createReview(reviewForm);
       setSubmitted(true);
-      setReviewForm({ email: '', start: 5, review: '' });
+      setReviewForm({ name: '', email: '', start: 5, review: '' });
     } catch (error) {
       console.error('Error submitting review:', error);
     } finally {
@@ -215,13 +215,12 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                 </p>
                 <div className="flex items-center justify-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-brand-bg flex items-center justify-center text-brand-gold text-xs font-bold border border-brand-border">
-                    {review.email[0].toUpperCase()}
+                    {review.name ? review.name[0].toUpperCase() : review.email[0].toUpperCase()}
                   </div>
-                  <div className="text-left">
+                  <div className="text-left flex items-center h-full">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-brand-text/40 block">
-                      {review.email.split('@')[0]}
+                      {review.name || review.email.split('@')[0]}
                     </span>
-                    <span className="text-[9px] uppercase tracking-widest text-brand-gold font-bold">Επιβεβαιωμένος Επισκέπτης</span>
                   </div>
                 </div>
               </div>
@@ -360,7 +359,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
                 <h3 className="text-2xl font-bold serif-font mb-2">Ευχαριστούμε!</h3>
-                <p className="text-brand-text/60">Η κριτική σας υποβλήθηκε και εκκρεμεί ο έλεγχος της.</p>
+                <p className="text-brand-text/60">Η κριτική σας υποβλήθηκε επιτυχώς.</p>
                 <button
                   onClick={() => setSubmitted(false)}
                   className="mt-8 text-brand-gold font-bold uppercase tracking-widest text-[10px] hover:underline"
@@ -371,6 +370,17 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             ) : (
               <form onSubmit={handleReviewSubmit} className="space-y-8">
                 <div className="grid gap-8 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Όνομα</label>
+                    <input
+                      required
+                      type="text"
+                      value={reviewForm.name}
+                      onChange={e => setReviewForm({ ...reviewForm, name: e.target.value })}
+                      className="w-full px-0 py-3 bg-transparent border-b border-brand-border outline-none focus:border-brand-gold transition-colors text-lg serif-font"
+                      placeholder="Το όνομά σας"
+                    />
+                  </div>
                   <div className="space-y-2">
                     <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Διεύθυνση Email</label>
                     <input

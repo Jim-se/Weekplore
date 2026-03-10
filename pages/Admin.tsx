@@ -102,6 +102,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'private_events' | 'email_templates' | 'reviews' | 'people'>('dashboard');
   const [events, setEvents] = useState<any[]>([]);
   const [privateEvents, setPrivateEvents] = useState<PrivateEvent[]>([]);
+  const [privateEventInquiries, setPrivateEventInquiries] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [people, setPeople] = useState<any[]>([]);
   const [newPrivateEvent, setNewPrivateEvent] = useState({ name: '', description: '', image_url: '' });
@@ -237,8 +238,10 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     try {
       const data = await eventService.getAdminPrivateEvents();
       setPrivateEvents(data);
+      const inquiriesData = await eventService.getAdminPrivateEventInquiries();
+      setPrivateEventInquiries(inquiriesData);
     } catch (error) {
-      console.error('Error fetching private events:', error);
+      console.error('Error fetching private events or inquiries:', error);
     }
   };
 
@@ -1196,7 +1199,8 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                           type="button"
                           onClick={() => {
                             if (tempProduct.title) {
-                              setNewEvent({ ...newEvent, products: [...newEvent.products, tempProduct] });
+                              const newProducts = [...newEvent.products, tempProduct].sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
+                              setNewEvent({ ...newEvent, products: newProducts });
                               setTempProduct({ title: '', description: '', price: 0 });
                             }
                           }}
@@ -1289,19 +1293,19 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                 </div>
               </form>
 
-              <div className="grid gap-8 md:grid-cols-2">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {privateEvents.map((privateEvent) => (
                   <motion.div
                     layout
                     key={privateEvent.id}
-                    className="space-y-5 rounded-[32px] border border-brand-border bg-white p-8 shadow-sm"
+                    className="space-y-4 rounded-3xl border border-brand-border bg-white p-5 sm:p-6 shadow-sm"
                   >
-                    <div className="relative aspect-[16/10] overflow-hidden rounded-[24px] bg-brand-bg/30">
+                    <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-brand-bg/30">
                       {privateEvent.image_url ? (
                         <img src={privateEvent.image_url} alt={privateEvent.name} className="h-full w-full object-cover" />
                       ) : (
                         <div className="flex h-full items-center justify-center text-brand-text/30">
-                          <ImageIcon className="h-10 w-10" />
+                          <ImageIcon className="h-8 w-8" />
                         </div>
                       )}
                       <label className="absolute inset-0 cursor-pointer bg-brand-text/0 transition-all hover:bg-brand-text/10">
@@ -1323,7 +1327,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                         type="text"
                         defaultValue={privateEvent.name}
                         onBlur={(e) => handleUpdatePrivateEvent(privateEvent.id, { name: e.target.value })}
-                        className="w-full rounded-2xl border border-brand-border px-5 py-4 outline-none transition-all focus:border-brand-gold"
+                        className="w-full rounded-xl border border-brand-border px-4 py-3 outline-none transition-all focus:border-brand-gold text-sm"
                       />
                     </div>
 
@@ -1332,7 +1336,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                       <textarea
                         defaultValue={privateEvent.description || ''}
                         onBlur={(e) => handleUpdatePrivateEvent(privateEvent.id, { description: e.target.value || null })}
-                        className="min-h-[130px] w-full rounded-2xl border border-brand-border px-5 py-4 outline-none transition-all focus:border-brand-gold"
+                        className="min-h-[100px] w-full rounded-xl border border-brand-border px-4 py-3 outline-none transition-all focus:border-brand-gold text-sm text-brand-text/80"
                       />
                     </div>
 
@@ -1347,6 +1351,72 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                     </div>
                   </motion.div>
                 ))}
+              </div>
+
+              {/* Inquiries Section */}
+              <div className="pt-10 mt-10 border-t border-brand-border">
+                <header className="mb-8">
+                  <h2 className="text-3xl font-bold serif-font">Inquiries</h2>
+                  <p className="mt-2 text-xs font-bold uppercase tracking-widest text-brand-text/40">All received private event requests</p>
+                </header>
+
+                <div className="bg-white rounded-[32px] border border-brand-border shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-brand-bg/20 border-b border-brand-border">
+                          <th className="px-6 py-5 text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Date</th>
+                          <th className="px-6 py-5 text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Client</th>
+                          <th className="px-6 py-5 text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Event Details</th>
+                          <th className="px-6 py-5 text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Preferences</th>
+                          <th className="px-6 py-5 text-[10px] uppercase font-bold tracking-widest text-brand-text/40 w-1/3">Message</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-brand-border">
+                        {privateEventInquiries.map((inq) => (
+                          <tr key={inq.id} className="hover:bg-brand-bg/5 transition-colors align-top">
+                            <td className="px-6 py-5">
+                              <div className="text-sm font-bold">{new Date(inq.created_at).toLocaleDateString()}</div>
+                              <div className="text-[10px] text-brand-text/40 uppercase tracking-widest">{new Date(inq.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            </td>
+                            <td className="px-6 py-5">
+                              <div className="text-sm font-bold">{inq.first_name} {inq.last_name}</div>
+                              <a href={`mailto:${inq.email}`} className="text-xs text-brand-gold hover:underline">{inq.email}</a>
+                              <div className="text-xs text-brand-text/60 mt-1 font-mono">{inq.phone}</div>
+                            </td>
+                            <td className="px-6 py-5">
+                              <div className="inline-block px-2 py-0.5 mb-2 rounded bg-brand-bg border border-brand-border text-[9px] font-bold uppercase tracking-widest text-brand-gold">
+                                {inq.is_custom ? 'Custom Event' : (inq.private_event_templates?.name || 'Admin Event')}
+                              </div>
+                              <div className="text-sm">
+                                <span className="text-brand-text/60">Guests:</span> <span className="font-bold">{inq.number_of_people}</span>
+                              </div>
+                              <div className="text-sm">
+                                <span className="text-brand-text/60">Approx Date:</span> <span className="font-bold">{inq.date_approx ? formatSafeDate(inq.date_approx) : 'Flexible'}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5 space-y-1">
+                              {inq.setting && <div className="text-xs"><span className="text-brand-text/60">Setting:</span> {inq.setting}</div>}
+                              {inq.area && <div className="text-xs"><span className="text-brand-text/60">Area:</span> {inq.area}</div>}
+                              {inq.decoration_budget > 0 && <div className="text-xs"><span className="text-brand-text/60">Deco budget:</span> €{inq.decoration_budget}</div>}
+                              {inq.is_custom && <div className="text-xs"><span className="text-brand-text/60">Activity Included:</span> {inq.has_activity ? 'Yes' : 'No'}</div>}
+                            </td>
+                            <td className="px-6 py-5">
+                              <p className="text-xs text-brand-text/80 whitespace-pre-wrap">{inq.message || '-'}</p>
+                            </td>
+                          </tr>
+                        ))}
+                        {privateEventInquiries.length === 0 && (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-12 text-center text-sm text-brand-text/40">
+                              No inquiries found.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           ) : activeTab === 'reviews' ? (
@@ -1377,7 +1447,8 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                                 <Mail className="w-4 h-4" />
                               </div>
                               <div>
-                                <p className="text-sm font-bold">{review.email}</p>
+                                <p className="text-sm font-bold">{review.name}</p>
+                                <p className="text-xs text-brand-text/60">{review.email}</p>
                                 <p className="text-[10px] text-brand-text/40">{new Date(review.created_at).toLocaleDateString()}</p>
                               </div>
                             </div>

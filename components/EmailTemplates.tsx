@@ -12,7 +12,8 @@ import {
   ChevronDown,
   List,
   Download,
-  Eye
+  Eye,
+  ShieldAlert
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -25,7 +26,38 @@ const EMAIL_PURPOSES = [
   { id: 'payment_invitation', label: 'Payment Invitation', description: 'Request for payment' },
   { id: 'confirmed_shift_booking', label: 'Confirmed Shift', description: 'Goal met confirmation' },
   { id: 'shift_cancelled', label: 'Shift Cancelled', description: 'Cancellation notice' },
+  { id: 'private_event_inquiry_received', label: 'Private Event Auto-Reply', description: 'Auto-reply to users who submit an inquiry' },
 ];
+
+const VARIABLE_REFERENCE = [
+  { key: '{name}', label: 'Customer Name', example: 'Alexandros' },
+  { key: '{event}', label: 'Experience Title', example: 'Sunset Wine Tasting' },
+  { key: '{date}', label: 'Date & Time', example: 'Saturday, 15 June 2024 at 18:30' },
+  { key: '{location}', label: 'Location', example: 'Gaia Estate, Nemea' },
+  { key: '{people}', label: 'Guests', example: '2' },
+  { key: '{cancel_url}', label: 'Cancellation Link', example: 'Clickable link' },
+];
+
+const VariableReference: React.FC = () => (
+  <div className="bg-brand-bg/40 p-4 rounded-xl border border-brand-border/40 mb-2">
+    <div className="flex items-center gap-2 mb-3">
+      <div className="w-1.5 h-1.5 rounded-full bg-brand-gold"></div>
+      <h4 className="text-[10px] uppercase font-bold tracking-[0.2em] text-brand-gold">Personalization Tags</h4>
+    </div>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-3">
+      {VARIABLE_REFERENCE.map(v => (
+        <div key={v.key} className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between">
+            <code className="text-[11px] font-black text-brand-text bg-white px-1.5 py-0.5 rounded border border-brand-border shadow-sm">{v.key}</code>
+          </div>
+          <p className="text-[9px] text-brand-text/50 font-medium">
+            {v.label}: <span className="text-brand-text/80 italic font-serif">"{v.example}"</span>
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -248,15 +280,30 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                   <select
                     value={assignedTemplateId || ''}
                     onChange={(e) => handlePurposeChange(purpose.id, e.target.value || null)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all bg-brand-bg/30 text-[11px] font-bold cursor-pointer appearance-none pr-8"
+                    className={`w-full px-3 py-2.5 rounded-xl border outline-none transition-all text-[11px] font-bold cursor-pointer appearance-none pr-8 ${assignedTemplateId
+                      ? 'border-brand-border bg-brand-bg/30'
+                      : 'border-brand-terracotta bg-brand-terracotta/5'
+                      }`}
                   >
                     <option value="">Select template...</option>
                     {templates.map(t => (
                       <option key={t.id} value={t.id}>[{t.id.slice(0, 8)}] {t.subject}</option>
                     ))}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-text/40 pointer-events-none" />
+                  <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none ${assignedTemplateId ? 'text-brand-text/40' : 'text-brand-terracotta'
+                    }`} />
                 </div>
+
+                {!assignedTemplateId && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-3 px-3 py-2 bg-brand-terracotta text-white rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-brand-terracotta/20"
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Don't leave empty</span>
+                  </motion.div>
+                )}
               </div>
             );
           })}
@@ -309,10 +356,10 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                     />
                   </div>
                   <div>
-                    <div className="flex justify-between items-baseline mb-1.5">
+                    <div className="flex justify-between items-baseline mb-2">
                       <label className="block text-[9px] uppercase font-bold tracking-widest text-brand-text/40">Body <span className="text-brand-gold normal-case tracking-normal font-bold">(HTML supported)</span></label>
-                      <span className="text-[9px] text-brand-text/30 font-mono">{`{name} {event} {date} {location} {people} {cancel_url}`}</span>
                     </div>
+                    <VariableReference />
                     <textarea
                       value={newTemplate.body}
                       onChange={(e) => setNewTemplate({ ...newTemplate, body: e.target.value })}
@@ -360,10 +407,10 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                       className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all text-sm font-bold"
                       required
                     />
-                    <div className="mb-1.5 flex justify-between items-baseline">
+                    <div className="mb-2 flex justify-between items-baseline">
                       <span className="text-[9px] uppercase font-bold tracking-widest text-brand-text/40">Body <span className="text-brand-gold normal-case tracking-normal font-bold">(HTML)</span></span>
-                      <span className="text-[9px] text-brand-text/30 font-mono">{`{name} {event} {date} {cancel_url}`}</span>
                     </div>
+                    <VariableReference />
                     <textarea
                       value={editingTemplate.body}
                       onChange={(e) => setEditingTemplate({ ...editingTemplate, body: e.target.value })}

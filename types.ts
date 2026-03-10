@@ -56,6 +56,7 @@ export interface WeekploreEvent {
 export interface Review {
   id: string;
   created_at: string;
+  name: string;
   email: string;
   start: number;
   review: string;
@@ -76,6 +77,22 @@ export interface PrivateEvent {
   name: string;
   description: string | null;
   image_url: string | null;
+}
+
+export interface PrivateEventInquiryFormData {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  number_of_people: number;
+  date_approx: string; // YYYY-MM-DD
+  setting: string;
+  has_activity: boolean;
+  decoration_budget: number;
+  message: string;
+  area: string;
+  is_custom: boolean;
+  private_event_template_id?: string | null;
 }
 
 export interface BookingFormData {

@@ -232,11 +232,8 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
                     <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-1">Τιμή ανά άτομο</p>
                     <div className="text-4xl font-bold serif-font text-brand-text">€{event.price}</div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-1">Διαθεσιμότητα</p>
-                    <div className="text-xs font-bold text-brand-terracotta uppercase tracking-widest">
-                      {isSoldOut ? 'Εξαντλήθηκε' : 'Περιορισμένες Θέσεις'}
-                    </div>
+                  <div>
+                    {/* Availability line removed */}
                   </div>
                 </div>
 
