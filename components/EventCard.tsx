@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { WeekploreEvent } from '../types';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface EventCardProps {
   event: WeekploreEvent;
@@ -9,8 +10,11 @@ interface EventCardProps {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
+  const { language, t } = useLanguage();
   const availableShifts = event.shifts?.filter(s => !s.is_full && s.booked_spots < s.capacity) || [];
   const isSoldOut = event.is_sold_out || availableShifts.length === 0;
+  
+  const locale = language === 'gr' ? 'el-GR' : 'en-US';
 
   return (
     <div className="group mx-auto flex h-full w-full max-w-[450px] flex-col overflow-hidden rounded-[28px] border border-brand-border bg-white shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[40px]">
@@ -21,15 +25,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
           alt={event.title}
           className={`w-full h-full object-cover transition-transform duration-[1.5s] group-hover:scale-110 ${event.is_sold_out ? 'grayscale opacity-60' : ''}`}
         />
-        {/* <div className="absolute top-6 left-6">
-          <span className="bg-brand-bg/90 backdrop-blur-sm text-brand-text px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full shadow-sm">
-            {event.category || 'Experience'}
-          </span>
-        </div> */}
         {event.is_sold_out && (
           <div className="absolute inset-0 flex items-center justify-center bg-brand-terracotta/20 backdrop-blur-[2px]">
             <div className="rotate-[-5deg] rounded-2xl border-2 border-white/20 bg-brand-terracotta px-5 py-2 text-xs font-bold uppercase tracking-[0.28em] text-white shadow-2xl sm:px-8 sm:py-3 sm:text-sm sm:tracking-[0.4em]">
-              Εξαντλήθηκε
+              {t('common.soldOut', { stripAccents: true })}
             </div>
           </div>
         )}
@@ -54,7 +53,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
             <span className="font-medium">
               {(() => {
                 const d = new Date(event.event_date);
-                return isNaN(d.getTime()) ? 'Μη έγκυρη ημερομηνία' : d.toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' });
+                return isNaN(d.getTime()) ? t('common.invalidDate') : d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
               })()}
             </span>
           </div>
@@ -63,9 +62,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-[11px] uppercase tracking-wider">
-              Προθεσμία: {(() => {
+              {t('common.deadline', { stripAccents: true })}: {(() => {
                 const d = new Date(event.booking_deadline);
-                return isNaN(d.getTime()) ? 'Μη έγκυρη ημερομηνία' : d.toLocaleDateString('el-GR');
+                return isNaN(d.getTime()) ? t('common.invalidDate') : d.toLocaleDateString(locale);
               })()}
             </span>
           </div>
@@ -73,15 +72,15 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
 
         {/* Shifts Section - Always Visible */}
         <div className="mb-6 sm:mb-8">
-          <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-brand-text/40 mb-4">Διαθέσιμες Ώρες</p>
+          <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-brand-text/40 mb-4">{t('common.availableShifts', { stripAccents: true })}</p>
           <div className="flex flex-wrap gap-2">
             {event.shifts?.map(shift => {
               const isFull = shift.is_full || shift.booked_spots >= shift.capacity;
               const timeStr = (() => {
                 const start = new Date(shift.start_time);
                 const end = new Date(shift.end_time);
-                if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Μη έγκυρη ώρα';
-                return `${start.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })}`;
+                if (isNaN(start.getTime()) || isNaN(end.getTime())) return t('common.invalidDate');
+                return `${start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
               })();
               return (
                 <div
@@ -114,7 +113,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
               : 'bg-brand-text text-brand-bg hover:bg-brand-gold hover:shadow-brand-gold/20'
               }`}
           >
-            {isSoldOut ? 'Εξαντλήθηκε' : 'Κάνε Κράτηση'}
+            {isSoldOut ? t('common.soldOut', { stripAccents: true }) : t('common.bookNow', { stripAccents: true })}
           </button>
         </div>
       </div>

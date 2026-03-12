@@ -6,6 +6,7 @@ import MessageDisplay from '../components/MessageDisplay';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, MapPin, Calendar, Clock } from 'lucide-react';
 import { eventService } from '../services/eventService';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface EventDetailProps {
   slug: string;
@@ -13,11 +14,14 @@ interface EventDetailProps {
 }
 
 const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
+  const { language, t } = useLanguage();
   const [event, setEvent] = useState<WeekploreEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  const locale = language === 'gr' ? 'el-GR' : 'en-US';
 
   useEffect(() => {
     if (message && message.type === 'success') {
@@ -56,11 +60,11 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
     if (!event) return;
     try {
       await eventService.createBooking(event.id, data);
-      setMessage({ type: 'success', text: `Ευχαριστούμε ${data.fullName}! Η κράτησή σας για το ${event.title} επιβεβαιώθηκε.` });
+      setMessage({ type: 'success', text: t('common.success', { name: data.fullName, title: event.title }) });
       setIsBookingModalOpen(false);
     } catch (error) {
       console.error('Booking error:', error);
-      setMessage({ type: 'error', text: 'Υπήρξε ένα σφάλμα κατά την επεξεργασία της κράτησής σας. Παρακαλώ δοκιμάστε ξανά.' });
+      setMessage({ type: 'error', text: t('common.error') });
     }
   };
 
@@ -83,8 +87,8 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
   if (!event) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold mb-4">Η εκδήλωση δεν βρέθηκε</h2>
-        <button onClick={() => onNavigate('events')} className="text-brand-gold font-bold uppercase tracking-widest">Επιστροφή στη Συλλογή</button>
+        <h2 className="text-2xl font-bold mb-4">{t('detail.notFound')}</h2>
+        <button onClick={() => onNavigate('events')} className="text-brand-gold font-bold uppercase tracking-widest">{t('detail.backToCollection')}</button>
       </div>
     );
   }
@@ -143,9 +147,6 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.8 }}
               >
-                {/* <span className="inline-block bg-brand-gold text-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.3em] rounded-full mb-6">
-                {event.category || 'Experience'}
-              </span> */}
                 <h1 className="max-w-4xl text-4xl font-bold leading-[0.95] tracking-tight text-white serif-font sm:text-5xl md:text-8xl md:tracking-tighter">
                   {event.title}
                 </h1>
@@ -159,7 +160,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
                     <span className="text-[11px] font-bold uppercase tracking-[0.22em] sm:text-xs sm:tracking-widest">
                       {(() => {
                         const d = new Date(event.event_date);
-                        return isNaN(d.getTime()) ? 'Μη έγκυρη ημερομηνία' : d.toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
+                        return isNaN(d.getTime()) ? t('common.invalidDate') : d.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
                       })()}
                     </span>
                   </div>
@@ -189,7 +190,6 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
             {/* Left Column: Description & Details */}
             <div className="space-y-10 sm:space-y-16 lg:col-span-7">
               <section>
-                {/* <h2 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold mb-6">The Experience</h2> */}
                 <p className="text-xl font-light leading-relaxed text-brand-text/80 serif-font italic sm:text-2xl md:text-3xl">
                   {event.full_description || event.short_description}
                 </p>
@@ -199,26 +199,26 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 text-brand-terracotta">
                     <Clock className="w-5 h-5" />
-                    <span className="text-[10px] uppercase font-bold tracking-widest">Προθεσμία Κράτησης</span>
+                    <span className="text-[10px] uppercase font-bold tracking-widest">{t('detail.bookingDeadline', { stripAccents: true })}</span>
                   </div>
                   <p className="text-xl font-medium text-brand-text">
                     {(() => {
                       const d = new Date(event.booking_deadline);
-                      return isNaN(d.getTime()) ? 'Μη έγκυρη ημερομηνία' : d.toLocaleDateString('el-GR', { day: 'numeric', month: 'long', year: 'numeric' });
+                      return isNaN(d.getTime()) ? t('common.invalidDate') : d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
                     })()}
                   </p>
                   <p className="text-xs text-brand-text/40 leading-relaxed">
-                    Οι κρατήσεις πρέπει να ολοκληρωθούν μέχρι αυτή την ημερομηνία για να διασφαλιστεί η διαθεσιμότητα.
+                    {t('detail.deadlineDesc')}
                   </p>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 text-brand-gold">
                     <MapPin className="w-5 h-5" />
-                    <span className="text-[10px] uppercase font-bold tracking-widest">Σημείο Συνάντησης</span>
+                    <span className="text-[10px] uppercase font-bold tracking-widest">{t('detail.meetingPoint', { stripAccents: true })}</span>
                   </div>
                   <p className="text-xl font-medium text-brand-text">{event.location_name}</p>
                   <p className="text-xs text-brand-text/40 leading-relaxed">
-                    {event.location_address || 'Λεπτομερείς οδηγίες θα σταλούν μετά την επιβεβαίωση.'}
+                    {event.location_address || t('detail.meetingDesc')}
                   </p>
                 </div>
               </section>
@@ -229,7 +229,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
               <div className="rounded-[28px] border border-brand-border bg-white p-6 shadow-2xl sm:rounded-[40px] sm:p-8 lg:sticky lg:top-32 lg:p-10">
                 <div className="mb-6 flex items-start justify-between gap-4 sm:mb-8 sm:items-center">
                   <div>
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-1">Τιμή ανά άτομο</p>
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-1">{t('detail.pricePerPerson', { stripAccents: true })}</p>
                     <div className="text-4xl font-bold serif-font text-brand-text">€{event.price}</div>
                   </div>
                   <div>
@@ -239,15 +239,15 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
 
                 <div className="mb-8 space-y-6 sm:mb-10">
                   <div>
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-4">Διαθέσιμες Ώρες</p>
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-4">{t('common.availableShifts', { stripAccents: true })}</p>
                     <div className="grid grid-cols-1 gap-3">
                       {event.shifts?.map(shift => {
                         const isFull = shift.is_full || shift.booked_spots >= shift.capacity;
                         const timeStr = (() => {
                           const start = new Date(shift.start_time);
                           const end = new Date(shift.end_time);
-                          if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Μη έγκυρη ώρα';
-                          return `${start.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })}`;
+                          if (isNaN(start.getTime()) || isNaN(end.getTime())) return t('common.invalidDate');
+                          return `${start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
                         })();
                         return (
                           <div
@@ -258,7 +258,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
                               }`}
                           >
                             <span className="text-[11px] font-bold uppercase tracking-[0.22em] sm:text-xs sm:tracking-widest">{timeStr}</span>
-                            {!isFull && <span className="text-[9px] font-bold text-brand-gold uppercase tracking-widest">Διαθέσιμο</span>}
+                            {!isFull && <span className="text-[9px] font-bold text-brand-gold uppercase tracking-widest">{t('common.available', { stripAccents: true })}</span>}
                           </div>
                         );
                       })}
@@ -274,11 +274,11 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
                     : 'bg-brand-text text-brand-bg hover:bg-brand-gold hover:shadow-brand-gold/20'
                     }`}
                 >
-                  {isSoldOut ? 'Εξαντλήθηκε' : 'Κάνε Κράτηση'}
+                  {isSoldOut ? t('common.soldOut', { stripAccents: true }) : t('common.bookNow', { stripAccents: true })}
                 </button>
 
                 <p className="mt-5 text-center text-[9px] font-bold uppercase tracking-[0.22em] text-brand-text/30 sm:mt-6 sm:tracking-widest">
-                  Ασφαλής πληρωμή • Άμεση επιβεβαίωση
+                  {t('detail.securePayment', { stripAccents: true })}
                 </p>
               </div>
             </div>

@@ -11,10 +11,10 @@ const SiteNavbar: React.FC<SiteNavbarProps> = ({ activePage, onNavigate }) => {
   const { language, setLanguage, t } = useLanguage();
 
   const navItems = [
-    { label: t('nav.home'), id: 'home' },
-    { label: t('nav.events'), id: 'events' },
-    { label: t('nav.privateEvents'), id: 'private-events' },
-    { label: t('nav.about'), id: 'about' },
+    { label: t('nav.home', { stripAccents: true }), id: 'home' },
+    { label: t('nav.events', { stripAccents: true }), id: 'events' },
+    { label: t('nav.privateEvents', { stripAccents: true }), id: 'private-events' },
+    { label: t('nav.about', { stripAccents: true }), id: 'about' },
   ];
 
   useEffect(() => {
@@ -172,7 +172,7 @@ const SiteNavbar: React.FC<SiteNavbarProps> = ({ activePage, onNavigate }) => {
                   onClick={() => handleNavigate(activePage === 'events' ? 'about' : 'events')}
                   className="mt-auto flex min-h-12 items-center justify-center rounded-full bg-brand-text px-5 py-3 text-[10px] font-bold uppercase tracking-[0.28em] text-brand-bg transition-colors hover:bg-brand-gold"
                 >
-                  {activePage === 'events' ? 'Ποιοι Είμαστε' : 'Κάνε Κράτηση'}
+                  {activePage === 'events' ? t('nav.about', { stripAccents: true }) : t('nav.book', { stripAccents: true })}
                 </button>
               )}
             </nav>

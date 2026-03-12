@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PrivateEventInquiryFormData } from '../types';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface PrivateEventInquiryFormProps {
     eventName: string;
@@ -10,6 +11,7 @@ interface PrivateEventInquiryFormProps {
 }
 
 const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ eventName, isCustom, templateId, onClose, onSubmit }) => {
+    const { t } = useLanguage();
     const [formData, setFormData] = useState<PrivateEventInquiryFormData>({
         first_name: '',
         last_name: '',
@@ -57,7 +59,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
         try {
             await onSubmit(formData);
         } catch (err: any) {
-            setErrorDetails(err.message || 'Something went wrong.');
+            setErrorDetails(err.message || t('common.error'));
         } finally {
             setIsSubmitting(false);
         }
@@ -75,9 +77,9 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                     {/* Header */}
                     <div className="pointer-events-none sticky top-0 z-20 flex items-start justify-between bg-gradient-to-b from-white via-white/95 to-transparent px-4 pb-12 pt-5 sm:px-6 sm:pb-16 md:px-10">
                         <div className="pr-4 pointer-events-auto">
-                            <span className="text-[9px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-1.5 block">Inquiry</span>
+                            <span className="text-[9px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-1.5 block">{t('inquiry.title', { stripAccents: true })}</span>
                             <h2 className="text-xl font-bold leading-tight text-brand-text serif-font sm:text-2xl">{eventName}</h2>
-                            <p className="text-[11px] text-brand-text/50 mt-1 uppercase tracking-wider font-medium">Please provide some details</p>
+                            <p className="text-[11px] text-brand-text/50 mt-1 uppercase tracking-wider font-medium">{t('inquiry.subtitle')}</p>
                         </div>
                         <button
                             onClick={onClose}
@@ -99,7 +101,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
 
                         <form onSubmit={handleSubmit} className="space-y-8">
                             <div className="space-y-6">
-                                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">Your Details</label>
+                                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">{t('inquiry.yourDetails', { stripAccents: true })}</label>
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                     <div className="relative group">
                                         <input
@@ -107,7 +109,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                             type="text"
                                             name="first_name"
                                             className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
-                                            placeholder="First Name"
+                                            placeholder={t('inquiry.firstName')}
                                             value={formData.first_name}
                                             onChange={handleChange}
                                         />
@@ -119,7 +121,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                             type="text"
                                             name="last_name"
                                             className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
-                                            placeholder="Last Name"
+                                            placeholder={t('inquiry.lastName')}
                                             value={formData.last_name}
                                             onChange={handleChange}
                                         />
@@ -131,7 +133,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                             type="email"
                                             name="email"
                                             className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
-                                            placeholder="Email Address"
+                                            placeholder={t('inquiry.email')}
                                             value={formData.email}
                                             onChange={handleChange}
                                         />
@@ -143,7 +145,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                             type="tel"
                                             name="phone"
                                             className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
-                                            placeholder="Phone Number"
+                                            placeholder={t('inquiry.phone')}
                                             value={formData.phone}
                                             onChange={handleChange}
                                         />
@@ -153,10 +155,10 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                             </div>
 
                             <div className="space-y-6">
-                                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">Event Details</label>
+                                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">{t('inquiry.eventDetails', { stripAccents: true })}</label>
                                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                                     <div className="relative group">
-                                        <label className="text-xs text-brand-text/60">Approximate Date</label>
+                                        <label className="text-xs text-brand-text/60">{t('inquiry.approxDate')}</label>
                                         <input
                                             required
                                             type="date"
@@ -169,7 +171,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                     </div>
 
                                     <div className="relative group">
-                                        <label className="text-xs text-brand-text/60">Number of guests</label>
+                                        <label className="text-xs text-brand-text/60">{t('inquiry.numOfGuests')}</label>
                                         <input
                                             required
                                             type="number"
@@ -184,7 +186,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                     </div>
 
                                     <div className="relative group">
-                                        <label className="text-xs text-brand-text/60">Area / Location</label>
+                                        <label className="text-xs text-brand-text/60">{t('inquiry.area')}</label>
                                         <input
                                             required
                                             type="text"
@@ -198,7 +200,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                     </div>
 
                                     <div className="relative group">
-                                        <label className="text-xs text-brand-text/60">Setting</label>
+                                        <label className="text-xs text-brand-text/60">{t('inquiry.setting')}</label>
                                         <select
                                             required
                                             name="setting"
@@ -206,16 +208,16 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                             onChange={handleChange}
                                             className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all focus:border-brand-gold sm:text-lg serif-font text-brand-text appearance-none"
                                         >
-                                            <option value="">Select Setting...</option>
-                                            <option value="Outdoor">Outdoor</option>
-                                            <option value="Indoor">Indoor</option>
-                                            <option value="Both">Both</option>
+                                            <option value="">{t('inquiry.selectSetting')}</option>
+                                            <option value="Outdoor">{t('inquiry.outdoor')}</option>
+                                            <option value="Indoor">{t('inquiry.indoor')}</option>
+                                            <option value="Both">{t('inquiry.both')}</option>
                                         </select>
                                         <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-gold transition-all group-focus-within:w-full" />
                                     </div>
 
                                     <div className="relative group">
-                                        <label className="text-xs text-brand-text/60">Decoration Budget</label>
+                                        <label className="text-xs text-brand-text/60">{t('inquiry.budget')}</label>
                                         <input
                                             required
                                             type="number"
@@ -247,7 +249,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                                         onChange={handleChange}
                                                         className="hidden"
                                                     />
-                                                    <span className="text-sm font-bold text-brand-text uppercase tracking-widest">Include activity</span>
+                                                    <span className="text-sm font-bold text-brand-text uppercase tracking-widest">{t('inquiry.includeActivity', { stripAccents: true })}</span>
                                                 </label>
                                             </div>
 
@@ -258,7 +260,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                                         name="activity"
                                                         rows={2}
                                                         className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font resize-none"
-                                                        placeholder="Describe the activity..."
+                                                        placeholder={t('inquiry.activityDesc')}
                                                         value={formData.activity || ''}
                                                         onChange={handleChange}
                                                     />
@@ -269,7 +271,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                     )}
 
                                     <div className="relative group sm:col-span-2 mt-4">
-                                        <label className="text-xs text-brand-text/60">Food / Drink Options</label>
+                                        <label className="text-xs text-brand-text/60">{t('inquiry.foodOptions')}</label>
                                         <select
                                             required
                                             name="food"
@@ -277,11 +279,11 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                             onChange={handleChange}
                                             className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all focus:border-brand-gold sm:text-lg serif-font text-brand-text appearance-none"
                                         >
-                                            <option value="">Select Option...</option>
-                                            <option value="brunch">Brunch</option>
-                                            <option value="food">Food</option>
-                                            <option value="drink">Drink</option>
-                                            <option value="nothing">Nothing</option>
+                                            <option value="">{t('inquiry.selectOption')}</option>
+                                            <option value="brunch">{t('inquiry.brunch')}</option>
+                                            <option value="food">{t('inquiry.food')}</option>
+                                            <option value="drink">{t('inquiry.drink')}</option>
+                                            <option value="nothing">{t('inquiry.nothing')}</option>
                                         </select>
                                         <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-gold transition-all group-focus-within:w-full" />
                                     </div>
@@ -289,14 +291,14 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                             </div>
 
                             <div className="space-y-4">
-                                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">Message</label>
+                                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">{t('inquiry.message', { stripAccents: true })}</label>
                                 <div className="relative group">
                                     <textarea
                                         required
                                         name="message"
                                         rows={4}
                                         className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font resize-none"
-                                        placeholder="Tell us more about your event..."
+                                        placeholder={t('inquiry.messagePlaceholder')}
                                         value={formData.message}
                                         onChange={handleChange}
                                     />
@@ -306,7 +308,7 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
 
                             <div className="pt-4 flex flex-col gap-3">
                                 <p className="text-center text-[10px] text-brand-text/60 italic tracking-wider">
-                                    We will contact you very soon with the price
+                                    {t('inquiry.contactSoon')}
                                 </p>
                                 <button
                                     type="submit"
@@ -316,10 +318,10 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                     {isSubmitting ? (
                                         <>
                                             <div className="w-4 h-4 border-2 border-brand-bg/30 border-t-brand-bg rounded-full animate-spin" />
-                                            Submitting...
+                                            {t('booking.processing')}
                                         </>
                                     ) : (
-                                        'Submit Inquiry'
+                                        t('inquiry.submit', { stripAccents: true })
                                     )}
                                 </button>
                             </div>

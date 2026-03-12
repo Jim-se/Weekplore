@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { WeekploreEvent, Shift, BookingFormData } from '../types';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface BookingModalProps {
   event: WeekploreEvent;
@@ -9,7 +10,10 @@ interface BookingModalProps {
 }
 
 const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit }) => {
+  const { language, t } = useLanguage();
   const availableShifts = event.shifts?.filter(s => !s.is_full && s.booked_spots < s.capacity) || [];
+  
+  const locale = language === 'gr' ? 'el-GR' : 'en-US';
 
   const [formData, setFormData] = useState<BookingFormData>({
     fullName: '',
@@ -91,12 +95,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
           {/* Header */}
           <div className="pointer-events-none sticky top-0 z-20 flex items-start justify-between bg-gradient-to-b from-white via-white/95 to-transparent px-4 pb-12 pt-5 sm:px-6 sm:pb-16 md:px-10">
             <div className="pr-4 pointer-events-auto">
-              <span className="text-[9px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-1.5 block">Κράτηση</span>
+              <span className="text-[9px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-1.5 block">{t('booking.title', { stripAccents: true })}</span>
               <h2 className="text-xl font-bold leading-tight text-brand-text serif-font sm:text-2xl">{event.title}</h2>
               <p className="text-[11px] text-brand-text/50 mt-1 uppercase tracking-wider font-medium">
                 {(() => {
                   const d = new Date(event.event_date);
-                  return isNaN(d.getTime()) ? 'Μη έγκυρη ημερομηνία' : d.toLocaleDateString('el-GR', { day: 'numeric', month: 'long' });
+                  return isNaN(d.getTime()) ? t('common.invalidDate') : d.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
                 })()}
               </p>
             </div>
@@ -115,15 +119,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Step 1: Time */}
               <div className="space-y-4">
-                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">1. Επιλέξτε Ώρα</label>
+                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">{t('booking.step1', { stripAccents: true })}</label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {event.shifts?.map((shift) => {
                     const isFull = shift.is_full || shift.booked_spots >= shift.capacity;
                     const timeStr = (() => {
                       const start = new Date(shift.start_time);
                       const end = new Date(shift.end_time);
-                      if (isNaN(start.getTime()) || isNaN(end.getTime())) return 'Μη έγκυρη ώρα';
-                      return `${start.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('el-GR', { hour: '2-digit', minute: '2-digit' })}`;
+                      if (isNaN(start.getTime()) || isNaN(end.getTime())) return t('common.invalidDate');
+                      return `${start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;
                     })();
                     return (
                       <label
@@ -150,7 +154,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                           />
                           <span className="font-bold text-xs uppercase tracking-[0.2em]">{timeStr}</span>
                         </div>
-                        {isFull && <span className="text-[9px] uppercase text-brand-text/30 font-bold">Εξαντλήθηκε</span>}
+                        {isFull && <span className="text-[9px] uppercase text-brand-text/30 font-bold">{t('common.soldOut', { stripAccents: true })}</span>}
                       </label>
                     );
                   })}
@@ -159,14 +163,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
 
               {/* Step 2: Personal Info & Guests */}
               <div className="space-y-6">
-                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">2. Προσωπικά στοιχεία</label>
+                <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">{t('booking.step2', { stripAccents: true })}</label>
                 <div className="space-y-6">
                   <div className="relative group">
                     <input
                       required
                       type="text"
                       className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
-                      placeholder="Ονοματεπώνυμο"
+                      placeholder={t('booking.fullName')}
                       value={formData.fullName}
                       onChange={e => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
                     />
@@ -179,7 +183,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                         required
                         type="tel"
                         className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
-                        placeholder="Αριθμός Τηλεφώνου"
+                        placeholder={t('booking.phone')}
                         value={formData.phone}
                         onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                       />
@@ -190,7 +194,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                         required
                         type="email"
                         className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
-                        placeholder="Διεύθυνση Email"
+                        placeholder={t('booking.email')}
                         value={formData.email}
                         onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                       />
@@ -201,8 +205,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                   <div className="pt-4">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <span className="block text-[10px] uppercase tracking-[0.3em] text-brand-text/40 font-bold mb-1">Αριθμός Επισκεπτών</span>
-                        <span className="text-xs font-bold text-brand-text uppercase tracking-widest opacity-60">Πόσα άτομα;</span>
+                        <span className="block text-[10px] uppercase tracking-[0.3em] text-brand-text/40 font-bold mb-1">{t('booking.numOfPeople')}</span>
+                        <span className="text-xs font-bold text-brand-text uppercase tracking-widest opacity-60">{t('booking.howMany')}</span>
                       </div>
                       <div className="flex items-center gap-4">
                         <button
@@ -230,7 +234,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
               {event.products && event.products.length > 0 && (
                 <div className="space-y-6">
                   <div className="flex justify-between items-end">
-                    <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">3. Επιλογές για κάθε άτομο</label>
+                    <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">{t('booking.step3', { stripAccents: true })}</label>
                   </div>
                   <div className={`transition-all ${
                     formData.numberOfPeople > 1 
@@ -243,8 +247,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                       }`}>
                         {formData.numberOfPeople > 1 && (
                           <div className="flex items-center justify-between pb-1">
-                            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-text/60">Επισκέπτης {pIdx + 1}</span>
-                            <span className="text-[9px] font-bold text-brand-gold uppercase tracking-[0.2em] italic opacity-80">επιλογή</span>
+                            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-text/60">{t('booking.guest')} {pIdx + 1}</span>
+                            <span className="text-[9px] font-bold text-brand-gold uppercase tracking-[0.2em] italic opacity-80">{t('booking.selection')}</span>
                           </div>
                         )}
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -273,7 +277,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                                   <div className="flex justify-between items-center gap-1">
                                     <p className="text-[9px] font-bold uppercase tracking-tight truncate">{product.title}</p>
                                     <span className="text-[8px] font-bold text-brand-text/60 flex-shrink-0">
-                                      {isFreeProduct ? 'Free' : `€${product.price}`}
+                                      {isFreeProduct ? t('common.free') : `€${product.price}`}
                                     </span>
                                   </div>
                                   <p className="text-[8px] text-brand-text/40 truncate opacity-60">{product.description}</p>
@@ -291,14 +295,14 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
               {/* Summary Section */}
               <div className="space-y-4 border-t border-brand-border pt-6">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="text-[9px] uppercase tracking-[0.3em] text-brand-text/40 font-bold">Σύνοψη Επιλογής</span>
+                  <span className="text-[9px] uppercase tracking-[0.3em] text-brand-text/40 font-bold">{t('booking.summary')}</span>
                   <span className="text-[11px] font-bold text-brand-text uppercase tracking-widest">
-                    {formData.numberOfPeople} {formData.numberOfPeople === 1 ? 'Επισκέπτης' : 'Επισκέπτες'}
+                    {formData.numberOfPeople} {formData.numberOfPeople === 1 ? t('booking.plural.guest') : t('booking.plural.guests')}
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                  <span className="text-xs font-bold uppercase tracking-widest text-brand-text">Συνολικό Ποσό</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-brand-text">{t('booking.total')}</span>
                   <span className="text-2xl font-bold serif-font text-brand-gold">
                     €{
                       (formData.numberOfPeople * event.price) +
@@ -319,10 +323,10 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                 {isSubmitting ? (
                   <>
                     <div className="w-4 h-4 border-2 border-brand-bg/30 border-t-brand-bg rounded-full animate-spin" />
-                    Επεξεργασία...
+                    {t('booking.processing')}
                   </>
                 ) : (
-                  'Επιβεβαίωση Κράτησης'
+                  t('booking.confirm')
                 )}
               </button>
             </form>

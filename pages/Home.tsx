@@ -64,6 +64,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
           eventService.getVisibleReviews(),
           eventService.getPeople()
         ]);
+        
         setVisibleReviews(reviewsData);
         setPeople(peopleData);
       } catch (error) {
@@ -71,7 +72,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       }
     };
     fetchData();
-  }, []);
+  }, [t]);
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +90,20 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
   return (
     <div className="flex flex-col overflow-x-hidden">
+      <style>{`
+        /* Deep Scrollbar Removal */
+        .no-scrollbar::-webkit-scrollbar {
+          display: none !important;
+          width: 0 !important;
+          height: 0 !important;
+          background: transparent !important;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none !important; /* IE and Edge */
+          scrollbar-width: none !important; /* Firefox */
+          -webkit-overflow-scrolling: touch;
+        }
+      `}</style>
       {/* Hero Section */}
       <section className="home-hero relative flex min-h-[100svh] items-center overflow-hidden px-4 pb-16 pt-10 sm:px-6 sm:pb-24 sm:pt-12 lg:pt-16">
         <div className="mx-auto grid w-full max-w-[1380px] gap-10 lg:grid-cols-12 lg:items-center lg:gap-14">
@@ -100,7 +115,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             >
               <div className="mb-5 inline-flex items-center gap-2 sm:mb-6">
                 <span className="h-[1px] w-8 bg-brand-gold sm:w-12"></span>
-                <span className="text-[10px] uppercase tracking-[0.5em] text-brand-gold font-bold">{t('home.authentic')}</span>
+                <span className="text-[10px] uppercase tracking-[0.5em] text-brand-gold font-bold">{t('home.authentic', { stripAccents: true })}</span>
               </div>
               <h1 className="home-hero-title mb-6 text-4xl font-bold leading-[0.92] tracking-[-0.04em] text-brand-text serif-font sm:mb-8 sm:text-6xl md:text-[78px] lg:text-[88px] xl:text-[96px]">
                 {t('home.heroTitle1')} <br />
@@ -179,49 +194,53 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* Feature Row / Ticker */}
-      <section className="overflow-hidden border-y border-brand-border/10 bg-brand-text py-8 text-brand-bg/60 sm:py-12">
-        <div className="animate-marquee flex gap-8 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.35em] sm:gap-12 sm:text-xs sm:tracking-[0.6em]">
-          {[1, 2, 3, 4].map(i => (
-            <React.Fragment key={i}>
-              <span className="flex items-center gap-4 text-brand-bg">
-                <svg className="w-4 h-4 text-brand-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" /></svg>
-                {t('home.ticker.outdoor')}
+      {/* Featured Reviews Section (formerly ticker) */}
+      {visibleReviews.length > 0 && (
+        <section className="relative overflow-hidden bg-brand-text py-20 sm:py-32">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 relative z-10">
+            <div className="mb-12 text-center sm:mb-20">
+              <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">
+                {t('home.reviews.subtitle', { stripAccents: true })}
               </span>
-              <span>•</span>
-              <span className="flex items-center gap-4 text-brand-bg">
-                <svg className="w-4 h-4 text-brand-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" /></svg>
-                {t('home.ticker.crafts')}
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-4 text-brand-bg">
-                <svg className="w-4 h-4 text-brand-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" /></svg>
-                {t('home.ticker.gastronomy')}
-              </span>
-              <span>•</span>
-            </React.Fragment>
-          ))}
-        </div>
-        <style>{`
-          @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-          }
-          .animate-marquee {
-            display: inline-flex;
-            animation: marquee 30s linear infinite;
-            width: max-content;
-          }
-          .animate-marquee-slow {
-            display: inline-flex;
-            animation: marquee 60s linear infinite;
-            width: max-content;
-          }
-          .animate-marquee-slow:hover {
-            animation-play-state: paused;
-          }
-        `}</style>
-      </section>
+              <h2 className="text-4xl md:text-6xl font-bold serif-font text-brand-bg">
+                {t('home.reviews.title')}
+              </h2>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+              {visibleReviews.slice(0, 4).map((review) => (
+                <motion.div
+                  key={review.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="group relative flex flex-col items-center rounded-[32px] border border-white/10 bg-white/5 p-8 text-center backdrop-blur-sm transition-all duration-500 hover:bg-white/10 hover:shadow-2xl"
+                >
+                  <div className="mb-6 flex justify-center gap-1">
+                    {[...Array(5)].map((_, starIdx) => (
+                      <Star
+                        key={starIdx}
+                        className={`w-3.5 h-3.5 ${starIdx < review.start ? 'text-brand-gold fill-brand-gold' : 'text-white/20'}`}
+                      />
+                    ))}
+                  </div>
+                  <p className="mb-8 text-base italic leading-relaxed text-brand-bg/80">
+                    "{t(review.review)}"
+                  </p>
+                  <div className="mt-auto flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-brand-gold/30 bg-brand-gold/10 text-[10px] font-bold text-brand-gold uppercase">
+                      {(review.name ? review.name[0] : review.email[0]).toUpperCase()}
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-brand-gold/60">
+                      {t(review.name || review.email.split('@')[0], { stripAccents: true })}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Services Section */}
       <section className="bg-brand-bg/5 py-16 sm:py-24 relative overflow-hidden">
@@ -286,8 +305,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                     <div className="absolute inset-0 bg-gradient-to-t from-brand-text/90 via-transparent to-transparent opacity-80 transition-opacity group-hover:opacity-90" />
 
                     <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8 translate-y-2 transition-transform duration-500 group-hover:translate-y-0">
-                      <p className="font-serif text-2xl sm:text-3xl font-bold leading-tight text-white mb-2">{service.name}</p>
-                      <div className="w-10 h-1 bg-brand-gold transform origin-left scale-x-0 transition-transform duration-500 delay-100 group-hover:scale-x-100"></div>
+                      <h3 className="text-xl font-bold font-serif text-white sm:text-2xl">{service.name}</h3>
                     </div>
                   </div>
                 </motion.div>
@@ -312,65 +330,15 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         </div>
       </section>
 
-      {/* Reviews Section */}
-      {visibleReviews.length > 0 && (
-        <section className="home-reviews relative overflow-hidden border-b border-brand-border/50 bg-brand-bg/30 py-16 sm:py-24">
-          <div className="mx-auto mb-10 max-w-7xl px-4 text-center sm:mb-12 sm:px-6">
-            <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-2 block">{t('home.reviews.subtitle')}</span>
-            <h2 className="text-4xl font-bold serif-font">{t('home.reviews.title')}</h2>
-          </div>
-
-          <div className="home-reviews-grid mx-auto max-w-7xl px-4 pb-6 sm:px-6 sm:pb-8">
-            {visibleReviews.map((review) => (
-              <div
-                key={review.id}
-                className="home-review-card w-full rounded-[28px] border border-brand-border bg-white p-6 text-center shadow-sm transition-all duration-500 hover:shadow-xl sm:rounded-[40px] sm:p-10"
-              >
-                <div className="mb-6 flex justify-center gap-1">
-                  {[...Array(5)].map((_, starIdx) => (
-                    <Star
-                      key={starIdx}
-                      className={`w-3.5 h-3.5 ${starIdx < review.start ? 'text-brand-gold fill-brand-gold' : 'text-brand-border'}`}
-                    />
-                  ))}
-                </div>
-                <p className="text-base text-brand-text/70 italic leading-relaxed mb-8">
-                  "{review.review}"
-                </p>
-                <div className="flex items-center justify-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-brand-bg flex items-center justify-center text-brand-gold text-xs font-bold border border-brand-border">
-                    {review.name ? review.name[0].toUpperCase() : review.email[0].toUpperCase()}
-                  </div>
-                  <div className="text-left flex items-center h-full">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-brand-text/40 block">
-                      {review.name || review.email.split('@')[0]}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <style>{`
-            .no-scrollbar::-webkit-scrollbar {
-              display: none;
-            }
-            .no-scrollbar {
-              -ms-overflow-style: none;
-              scrollbar-width: none;
-            }
-          `}</style>
-        </section>
-      )}
 
       {/* Our People Section */}
       {people.length > 0 && (
         <section className="home-people overflow-hidden bg-white px-4 py-20 sm:px-6 sm:py-32">
           <div className="mx-auto max-w-7xl">
             <div className="mb-12 text-center sm:mb-20">
-              <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">{t('home.people.subtitle')}</span>
+              <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">{t('home.people.subtitle', { stripAccents: true })}</span>
               <h2 className="text-5xl font-bold serif-font mb-4">{t('home.people.title')}</h2>
-              <p className="text-brand-text/40 text-sm uppercase tracking-widest font-bold">{t('home.people.desc')}</p>
+              <p className="text-brand-text/40 text-sm uppercase tracking-widest font-bold">{t('home.people.desc', { stripAccents: true })}</p>
             </div>
 
             <div className="home-people-grid">
@@ -467,9 +435,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       <section className="home-feedback bg-brand-bg/20 px-4 py-20 sm:px-6 sm:py-32">
         <div className="mx-auto max-w-4xl">
           <div className="mb-12 text-center sm:mb-16">
-            <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">{t('home.feedback.subtitle')}</span>
+            <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">{t('home.feedback.subtitle', { stripAccents: true })}</span>
             <h2 className="text-5xl font-bold serif-font mb-4">{t('home.feedback.title')}</h2>
-            <p className="text-brand-text/40 text-sm uppercase tracking-widest font-bold">{t('home.feedback.desc')}</p>
+            <p className="text-brand-text/40 text-sm uppercase tracking-widest font-bold">{t('home.feedback.desc', { stripAccents: true })}</p>
           </div>
 
           <div className="rounded-[28px] border border-brand-border bg-white p-6 shadow-xl sm:rounded-[40px] sm:p-8 md:p-12">
@@ -657,6 +625,27 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
           .home-people .group p {
             line-height: 1.5;
           }
+
+        }
+
+        }
+
+        /* Aggressive Scrollbar Removal */
+        .no-scrollbar::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;
+          display: none !important;
+          background: transparent !important;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none !important; /* IE and Edge */
+          scrollbar-width: none !important; /* Firefox */
+          overflow: -moz-scrollbars-none !important;
+        }
+        
+        /* Ensure parents don't force scrollbars */
+        .no-scrollbar-container {
+          overflow: hidden !important;
         }
       `}</style>
     </div>

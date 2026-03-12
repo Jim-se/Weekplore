@@ -5,8 +5,10 @@ import BookingModal from '../components/BookingModal';
 import EventCard from '../components/EventCard';
 import MessageDisplay from '../components/MessageDisplay';
 import { eventService } from '../services/eventService';
+import { useLanguage } from '../lib/LanguageContext';
 
 const Events: React.FC = () => {
+  const { t } = useLanguage();
   const [events, setEvents] = useState<WeekploreEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<WeekploreEvent | null>(null);
@@ -45,11 +47,11 @@ const Events: React.FC = () => {
     if (!selectedEvent) return;
     try {
       await eventService.createBooking(selectedEvent.id, data);
-      setMessage({ type: 'success', text: `Ευχαριστούμε ${data.fullName}! Η κράτησή σας για το ${selectedEvent.title} επιβεβαιώθηκε.` });
+      setMessage({ type: 'success', text: t('common.success', { name: data.fullName, title: selectedEvent.title }) });
       setSelectedEvent(null);
     } catch (error) {
       console.error('Booking error:', error);
-      setMessage({ type: 'error', text: 'Υπήρξε ένα σφάλμα κατά την επεξεργασία της κράτησής σας. Παρακαλώ δοκιμάστε ξανά.' });
+      setMessage({ type: 'error', text: t('common.error') });
     }
   };
 
@@ -67,10 +69,9 @@ const Events: React.FC = () => {
               <path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" />
             </svg>
           </div>
-          <h1 className="text-5xl md:text-8xl font-bold serif-font mb-6 italic tracking-tight">Upcoming Events</h1>
-          <p className="text-xl opacity-80 font-light max-w-2xl mx-auto mb-8">
-            Ψάχνεις πώς να διασκεδάσεις αυτή την εβδομάδα;<br />
-            Στη weekplore διοργανώνουμε events και δραστηριότητες που κάνουν τις μέρες σου πιο ζωντανές, χαρούμενες, δημιουργικές - όπως τους αξίζει!
+          <h1 className="text-5xl md:text-8xl font-bold serif-font mb-6 italic tracking-tight">{t('events.title')}</h1>
+          <p className="text-xl opacity-80 font-light max-w-2xl mx-auto mb-8 whitespace-pre-line">
+            {t('events.desc')}
           </p>
 
           {/*  <div className="flex overflow-x-auto md:justify-center gap-3 md:gap-4 mt-12 pb-4 px-2 scrollbar-hide snap-x">
