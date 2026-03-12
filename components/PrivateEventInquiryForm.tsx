@@ -19,6 +19,8 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
         date_approx: '',
         setting: '',
         has_activity: false,
+        activity: '',
+        food: '',
         decoration_budget: 0,
         message: '',
         area: '',
@@ -228,26 +230,61 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                                     </div>
 
                                     {isCustom && (
-                                        <div className="flex items-center pt-8">
-                                            <label className="flex items-center gap-3 cursor-pointer">
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.has_activity ? 'bg-brand-gold border-brand-gold' : 'border-brand-border bg-transparent'}`}>
-                                                    {formData.has_activity && (
-                                                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                        </svg>
-                                                    )}
+                                        <div className="flex flex-col gap-4 pt-4 sm:col-span-2">
+                                            <div className="flex items-center">
+                                                <label className="flex items-center gap-3 cursor-pointer">
+                                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${formData.has_activity ? 'bg-brand-gold border-brand-gold' : 'border-brand-border bg-transparent'}`}>
+                                                        {formData.has_activity && (
+                                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <input
+                                                        type="checkbox"
+                                                        name="has_activity"
+                                                        checked={formData.has_activity}
+                                                        onChange={handleChange}
+                                                        className="hidden"
+                                                    />
+                                                    <span className="text-sm font-bold text-brand-text uppercase tracking-widest">Include activity</span>
+                                                </label>
+                                            </div>
+
+                                            {formData.has_activity && (
+                                                <div className="relative group animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <textarea
+                                                        required={formData.has_activity}
+                                                        name="activity"
+                                                        rows={2}
+                                                        className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font resize-none"
+                                                        placeholder="Describe the activity..."
+                                                        value={formData.activity || ''}
+                                                        onChange={handleChange}
+                                                    />
+                                                    <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-gold transition-all group-focus-within:w-full" />
                                                 </div>
-                                                <input
-                                                    type="checkbox"
-                                                    name="has_activity"
-                                                    checked={formData.has_activity}
-                                                    onChange={handleChange}
-                                                    className="hidden"
-                                                />
-                                                <span className="text-sm font-bold text-brand-text uppercase tracking-widest">Include activity</span>
-                                            </label>
+                                            )}
                                         </div>
                                     )}
+
+                                    <div className="relative group sm:col-span-2 mt-4">
+                                        <label className="text-xs text-brand-text/60">Food / Drink Options</label>
+                                        <select
+                                            required
+                                            name="food"
+                                            value={formData.food || ''}
+                                            onChange={handleChange}
+                                            className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all focus:border-brand-gold sm:text-lg serif-font text-brand-text appearance-none"
+                                        >
+                                            <option value="">Select Option...</option>
+                                            <option value="brunch">Brunch</option>
+                                            <option value="food">Food</option>
+                                            <option value="drink">Drink</option>
+                                            <option value="nothing">Nothing</option>
+                                        </select>
+                                        <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-gold transition-all group-focus-within:w-full" />
+                                    </div>
                                 </div>
                             </div>
 

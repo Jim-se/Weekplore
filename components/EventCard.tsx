@@ -87,8 +87,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
                 <div
                   key={shift.id}
                   className={`rounded-xl border px-3 py-2 text-[10px] transition-all sm:px-4 ${isFull
-                      ? 'opacity-30 border-gray-200 bg-gray-50 line-through'
-                      : 'border-brand-gold/20 bg-brand-bg text-brand-gold font-bold tracking-widest'
+                    ? 'opacity-30 border-gray-200 bg-gray-50 line-through'
+                    : 'border-brand-gold/20 bg-brand-bg text-brand-gold font-bold tracking-widest'
                     }`}
                 >
                   {timeStr}
@@ -104,14 +104,14 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
             onClick={() => onInfo?.(event)}
             className="col-span-1 min-h-11 rounded-full border border-brand-text py-3 text-[10px] font-bold uppercase tracking-widest text-brand-text transition-all duration-300 hover:bg-brand-text hover:text-brand-bg sm:py-4"
           >
-            Πληροφορίες
+            Info
           </button>
           <button
             disabled={isSoldOut}
             onClick={() => onBook(event)}
             className={`col-span-1 min-h-11 rounded-full py-3 text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95 sm:col-span-2 sm:py-4 ${isSoldOut
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                : 'bg-brand-text text-brand-bg hover:bg-brand-gold hover:shadow-brand-gold/20'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+              : 'bg-brand-text text-brand-bg hover:bg-brand-gold hover:shadow-brand-gold/20'
               }`}
           >
             {isSoldOut ? 'Εξαντλήθηκε' : 'Κάνε Κράτηση'}

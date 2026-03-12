@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WeekploreEvent, Shift, BookingFormData } from '../types';
 
 interface BookingModalProps {
@@ -17,31 +17,53 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
     email: '',
     shiftId: availableShifts[0]?.id || 0,
     numberOfPeople: 1,
-    products: (() => {
-      const defaultProductId = event.products?.find(p => p.price === 0)?.id || event.products?.[0]?.id;
-      return defaultProductId ? [{ product_id: defaultProductId, quantity: 1 }] : [];
-    })()
+    products: []
   });
 
-  React.useEffect(() => {
+  const [personSelections, setPersonSelections] = useState<string[]>([]);
+
+  useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, []);
 
-  React.useEffect(() => {
-    setFormData(prev => {
-      const defaultProductId = event.products?.find(p => p.price === 0)?.id || event.products?.[0]?.id;
-      if (defaultProductId) {
-        return {
-          ...prev,
-          products: [{ product_id: defaultProductId, quantity: prev.numberOfPeople }]
-        };
+  // Initialize/Sync person selections based on numberOfPeople
+  useEffect(() => {
+    if (!event.products || event.products.length === 0) {
+      setPersonSelections([]);
+      return;
+    }
+    
+    const defaultProductId = event.products.find(p => p.price === 0)?.id || event.products[0].id;
+    
+    setPersonSelections(prev => {
+      const newSels = [...prev];
+      if (newSels.length > formData.numberOfPeople) {
+        return newSels.slice(0, formData.numberOfPeople);
       }
-      return { ...prev, products: [] };
+      while (newSels.length < formData.numberOfPeople) {
+        newSels.push(defaultProductId);
+      }
+      return newSels;
     });
   }, [formData.numberOfPeople, event.products]);
+
+  // Aggregate selections for form submission
+  useEffect(() => {
+    const counts: Record<string, number> = {};
+    personSelections.forEach(id => {
+      if (id) counts[id] = (counts[id] || 0) + 1;
+    });
+    
+    const products = Object.entries(counts).map(([product_id, quantity]) => ({
+      product_id,
+      quantity
+    }));
+    
+    setFormData(prev => ({ ...prev, products }));
+  }, [personSelections]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -66,7 +88,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
     >
       <div className="flex max-h-[96vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-[28px] border border-brand-border bg-brand-bg p-1.5 shadow-2xl sm:max-h-[90vh] sm:w-[95%] sm:rounded-[32px]">
         <div className="relative flex-1 overflow-y-auto rounded-t-[22px] bg-white scroll-smooth no-scrollbar sm:rounded-[26px]">
-          {/* Header - Sticky with gradient */}
+          {/* Header */}
           <div className="pointer-events-none sticky top-0 z-20 flex items-start justify-between bg-gradient-to-b from-white via-white/95 to-transparent px-4 pb-12 pt-5 sm:px-6 sm:pb-16 md:px-10">
             <div className="pr-4 pointer-events-auto">
               <span className="text-[9px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-1.5 block">Κράτηση</span>
@@ -91,6 +113,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
 
           <div className="px-4 pb-8 pt-0 sm:px-6 sm:pb-10 md:px-10">
             <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Step 1: Time */}
               <div className="space-y-4">
                 <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">1. Επιλέξτε Ώρα</label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -134,6 +157,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                 </div>
               </div>
 
+              {/* Step 2: Personal Info & Guests */}
               <div className="space-y-6">
                 <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">2. Προσωπικά στοιχεία</label>
                 <div className="space-y-6">
@@ -202,91 +226,65 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                 </div>
               </div>
 
+              {/* Step 3: Individual Product Selection */}
               {event.products && event.products.length > 0 && (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="flex justify-between items-end">
-                    <label className="block text-[9px] uppercase tracking-[0.3em] text-brand-text/40 font-bold">3. Επιλέξτε Προϊόντα</label>
-                    <span className="text-[9px] font-bold text-brand-gold uppercase tracking-widest">
-                      Σύνολο: {formData.products?.reduce((acc, p) => acc + p.quantity, 0) || 0} / {formData.numberOfPeople}
-                    </span>
+                    <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">3. Επιλογές για κάθε άτομο</label>
                   </div>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {event.products.map((product, index) => {
-                      const selectedProduct = formData.products?.find(p => p.product_id === product.id);
-                      const currentQty = selectedProduct?.quantity || 0;
-                      const isFreeProduct = product.price === 0;
-
-                      return (
-                        <div key={product.id} className="p-4 rounded-2xl border border-brand-border bg-brand-bg/10">
-                          <div className="flex gap-3 mb-3">
-                            {product.image_url && (
-                              <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 border border-brand-border">
-                                <img
-                                  src={product.image_url}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-start gap-2">
-                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-brand-text truncate">{product.title}</h4>
-                                <span className="text-[10px] font-bold text-brand-text flex-shrink-0">
-                                  {isFreeProduct ? <span className="text-brand-gold uppercase tracking-widest text-[8px]">Περιλαμβάνεται</span> : `€${product.price}`}
-                                </span>
-                              </div>
-                              <p className="text-[9px] text-brand-text/40 leading-tight mt-0.5 line-clamp-2">{product.description}</p>
-                            </div>
+                  <div className={`transition-all ${
+                    formData.numberOfPeople > 1 
+                      ? 'rounded-[32px] border border-brand-border bg-brand-bg/5 p-6 sm:p-8' 
+                      : 'space-y-4'
+                  }`}>
+                    {personSelections.map((selectedId, pIdx) => (
+                      <div key={pIdx} className={`flex flex-col gap-4 transition-all ${
+                        formData.numberOfPeople > 1 && pIdx > 0 ? 'pt-6 mt-6 border-t border-brand-border/10' : ''
+                      }`}>
+                        {formData.numberOfPeople > 1 && (
+                          <div className="flex items-center justify-between pb-1">
+                            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand-text/60">Επισκέπτης {pIdx + 1}</span>
+                            <span className="text-[9px] font-bold text-brand-gold uppercase tracking-[0.2em] italic opacity-80">επιλογή</span>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const products = [...(formData.products || [])];
-                                const idx = products.findIndex(p => p.product_id === product.id);
-                                if (idx > -1) {
-                                  if (products[idx].quantity > 0) {
-                                    products[idx].quantity -= 1;
-                                    setFormData(prev => ({ ...prev, products }));
-                                  }
-                                }
-                              }}
-                              className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border transition-colors hover:bg-white"
-                            >
-                              -
-                            </button>
-                            <span className="text-sm font-bold serif-font w-4 text-center">{currentQty}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const products = [...(formData.products || [])];
-                                const idx = products.findIndex(p => p.product_id === product.id);
-                                const totalQty = products.reduce((acc, p) => acc + p.quantity, 0);
-
-                                if (totalQty < formData.numberOfPeople) {
-                                  if (idx > -1) {
-                                    products[idx].quantity += 1;
-                                  } else {
-                                    products.push({ product_id: product.id, quantity: 1 });
-                                  }
-                                  setFormData(prev => ({ ...prev, products }));
-                                }
-                              }}
-                              className="flex h-9 w-9 items-center justify-center rounded-full border border-brand-border transition-colors hover:bg-white"
-                            >
-                              +
-                            </button>
-                          </div>
+                        )}
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {event.products?.map(product => {
+                            const isSelected = selectedId === product.id;
+                            const isFreeProduct = product.price === 0;
+                            return (
+                              <button
+                                key={product.id}
+                                type="button"
+                                onClick={() => {
+                                  const newSels = [...personSelections];
+                                  newSels[pIdx] = product.id;
+                                  setPersonSelections(newSels);
+                                }}
+                                className={`flex items-center gap-3 rounded-xl border p-2 text-left transition-all ${
+                                  isSelected ? 'border-brand-gold bg-brand-gold/5 ring-1 ring-brand-gold shadow-sm' : 'border-brand-border hover:bg-white hover:border-brand-gold/30'
+                                }`}
+                              >
+                                {product.image_url && (
+                                  <div className="h-10 w-10 flex-shrink-0 rounded-lg overflow-hidden border border-brand-border/30">
+                                    <img src={product.image_url} alt="" className="h-full w-full object-cover" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex justify-between items-center gap-1">
+                                    <p className="text-[9px] font-bold uppercase tracking-tight truncate">{product.title}</p>
+                                    <span className="text-[8px] font-bold text-brand-text/60 flex-shrink-0">
+                                      {isFreeProduct ? 'Free' : `€${product.price}`}
+                                    </span>
+                                  </div>
+                                  <p className="text-[8px] text-brand-text/40 truncate opacity-60">{product.description}</p>
+                                </div>
+                              </button>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
+                      </div>
+                    ))}
                   </div>
-                  {formData.products && formData.products.reduce((acc, p) => acc + p.quantity, 0) !== formData.numberOfPeople && (
-                    <p className="text-[9px] text-brand-terracotta font-bold uppercase tracking-widest text-center">
-                      Παρακαλώ επιλέξτε ακριβώς {formData.numberOfPeople} προϊόντα
-                    </p>
-                  )}
                 </div>
               )}
 

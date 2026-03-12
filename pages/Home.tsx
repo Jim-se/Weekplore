@@ -1,30 +1,58 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Send, CheckCircle2 } from 'lucide-react';
+import { Star, Send, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { eventService } from '../services/eventService';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface HomeProps {
   onNavigate: (page: string) => void;
 }
 
 const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&q=80&w=1000",
-  "https://images.unsplash.com/photo-1544551763-47a0159f963f?auto=format&fit=crop&q=80&w=1000",
-  "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&q=80&w=1000"
+  "/images/hero-1.jpg",
+  "/images/hero-2.jpg",
+  "/images/hero-3.jpg"
+];
+
+const PEOPLE_IMAGES = [
+  "/images/people-1.jpg",
+  "/images/people-2.jpg",
+  "/images/people-3.jpg",
+];
+
+const SERVICE_IMAGES = [
+  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1530103862676-de8892bf309c?auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1522066895315-9cc01a21cb16?auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1519682577862-22b62b24e4d6?auto=format&fit=crop&q=80",
 ];
 
 const Home: React.FC<HomeProps> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const [currentHero, setCurrentHero] = useState(0);
+  const [currentPeopleImage, setCurrentPeopleImage] = useState(0);
   const [reviewForm, setReviewForm] = useState({ name: '', email: '', start: 5, review: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [visibleReviews, setVisibleReviews] = useState<any[]>([]);
   const [people, setPeople] = useState<any[]>([]);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = 350; // Approximating card width + gap
+      carouselRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentHero((prev) => (prev + 1) % HERO_IMAGES.length);
+      setCurrentPeopleImage((prev) => (prev + 1) % PEOPLE_IMAGES.length);
     }, 6000);
     return () => clearInterval(timer);
   }, []);
@@ -60,7 +88,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col overflow-x-hidden">
       {/* Hero Section */}
       <section className="home-hero relative flex min-h-[100svh] items-center overflow-hidden px-4 pb-16 pt-10 sm:px-6 sm:pb-24 sm:pt-12 lg:pt-16">
         <div className="mx-auto grid w-full max-w-[1380px] gap-10 lg:grid-cols-12 lg:items-center lg:gap-14">
@@ -72,14 +100,14 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             >
               <div className="mb-5 inline-flex items-center gap-2 sm:mb-6">
                 <span className="h-[1px] w-8 bg-brand-gold sm:w-12"></span>
-                <span className="text-[10px] uppercase tracking-[0.5em] text-brand-gold font-bold">Αυθεντικές Εμπειρίες</span>
+                <span className="text-[10px] uppercase tracking-[0.5em] text-brand-gold font-bold">{t('home.authentic')}</span>
               </div>
-              <h1 className="home-hero-title mb-6 text-5xl font-bold leading-[0.92] tracking-[-0.04em] text-brand-text serif-font sm:mb-8 sm:text-6xl md:text-[78px] lg:text-[88px] xl:text-[96px]">
-                Ανακάλυψε τα <br />
-                <span className="italic text-brand-terracotta">Σαββατοκύριακά σου.</span>
+              <h1 className="home-hero-title mb-6 text-4xl font-bold leading-[0.92] tracking-[-0.04em] text-brand-text serif-font sm:mb-8 sm:text-6xl md:text-[78px] lg:text-[88px] xl:text-[96px]">
+                {t('home.heroTitle1')} <br />
+                <span className="italic text-brand-terracotta">{t('home.heroTitle2')}</span>
               </h1>
-              <p className="mb-8 max-w-xl text-base font-light leading-relaxed opacity-80 sm:mb-10 sm:text-lg md:max-w-lg md:text-xl">
-                Μοναδικές εμπειρίες αναψυχής σχεδιασμένες για όσους αναζητούν ηρεμία, σύνδεση και μικρές αποδράσεις από την καθημερινότητα.
+              <p className="mb-8 max-w-xl text-base font-light leading-relaxed opacity-80 sm:mb-10 sm:text-lg md:max-w-lg md:text-xl whitespace-pre-line">
+                {t('home.heroDesc')}
               </p>
               <div className="home-hero-actions flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:gap-6">
                 <button
@@ -87,13 +115,13 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                   className="group relative w-full overflow-hidden rounded-full bg-brand-text px-8 py-4 text-brand-bg transition-all duration-500 hover:shadow-2xl sm:w-auto sm:px-12 sm:py-5"
                 >
                   <div className="absolute inset-0 bg-brand-gold translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-                  <span className="relative z-10 uppercase text-xs font-bold tracking-[0.3em]">Δες τις Εκδηλώσεις</span>
+                  <span className="relative z-10 uppercase text-xs font-bold tracking-[0.3em]">{t('home.viewEvents')}</span>
                 </button>
                 <button
                   onClick={() => onNavigate('about')}
                   className="w-full rounded-full border border-brand-text/20 px-8 py-4 text-xs font-bold uppercase tracking-[0.3em] transition-all hover:border-brand-text sm:w-auto sm:px-12 sm:py-5"
                 >
-                  Η Ιστορία μας
+                  {t('home.ourStory')}
                 </button>
               </div>
             </motion.div>
@@ -128,11 +156,18 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             </div>
 
             <div className="absolute -bottom-10 -left-10 z-20 aspect-square w-48 rounded-3xl overflow-hidden shadow-xl -rotate-6 hidden md:block">
-              <img
-                src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&q=80&w=600"
-                alt="Wine"
-                className="w-full h-full object-cover"
-              />
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentPeopleImage}
+                  src={PEOPLE_IMAGES[currentPeopleImage]}
+                  alt="People Experience"
+                  initial={{ opacity: 0, scale: 1.1 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1.5 }}
+                  className="w-full h-full object-cover"
+                />
+              </AnimatePresence>
             </div>
             {/* Background Decorative Spark */}
             <div className="pointer-events-none absolute -right-8 -top-10 -z-10 h-40 w-40 text-brand-gold/10 sm:-right-12 sm:-top-14 sm:h-56 sm:w-56 md:-right-20 md:-top-20 md:h-80 md:w-80">
@@ -151,17 +186,17 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             <React.Fragment key={i}>
               <span className="flex items-center gap-4 text-brand-bg">
                 <svg className="w-4 h-4 text-brand-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" /></svg>
-                Υπαίθριες Δραστηριότητες
+                {t('home.ticker.outdoor')}
               </span>
               <span>•</span>
               <span className="flex items-center gap-4 text-brand-bg">
                 <svg className="w-4 h-4 text-brand-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" /></svg>
-                Εργαστήρια Χειροτεχνίας
+                {t('home.ticker.crafts')}
               </span>
               <span>•</span>
               <span className="flex items-center gap-4 text-brand-bg">
                 <svg className="w-4 h-4 text-brand-gold" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" /></svg>
-                Γαστρονομικές Διαδρομές
+                {t('home.ticker.gastronomy')}
               </span>
               <span>•</span>
             </React.Fragment>
@@ -188,12 +223,101 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         `}</style>
       </section>
 
+      {/* Services Section */}
+      <section className="bg-brand-bg/5 py-16 sm:py-24 relative overflow-hidden">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="mb-12 flex flex-col items-center justify-between sm:mb-16 md:flex-row">
+            <div className="text-center md:text-left">
+              <h2 className="text-4xl font-bold serif-font text-brand-text mb-4 md:mb-0">{t('home.services.title')}</h2>
+            </div>
+          </div>
+
+          <div className="-mx-4 sm:mx-0 relative group/carousel">
+            {/* Fade Overlays */}
+            <div className="absolute left-0 top-0 bottom-12 z-20 w-24 pointer-events-none bg-gradient-to-r from-brand-bg/90 to-transparent hidden sm:block" />
+            <div className="absolute right-0 top-0 bottom-12 z-20 w-24 pointer-events-none bg-gradient-to-l from-brand-bg/90 to-transparent hidden sm:block" />
+
+            {/* Desktop Navigation Buttons */}
+            <div className="absolute -left-6 top-1/2 z-30 -translate-y-1/2 hidden lg:block opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300">
+              <button
+                onClick={() => scrollCarousel('left')}
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-brand-border bg-white/80 backdrop-blur-md text-brand-text shadow-lg hover:bg-brand-text hover:text-white transition-all hover:scale-110"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="absolute -right-6 top-1/2 z-30 -translate-y-1/2 hidden lg:block opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300">
+              <button
+                onClick={() => scrollCarousel('right')}
+                className="flex h-14 w-14 items-center justify-center rounded-full border border-brand-border bg-white/80 backdrop-blur-md text-brand-text shadow-lg hover:bg-brand-text hover:text-white transition-all hover:scale-110"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div
+              ref={carouselRef}
+              className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory px-4 pb-12 pt-4 sm:px-12 no-scrollbar relative"
+            >
+              {[
+                { name: t('home.services.item1'), img: SERVICE_IMAGES[0] },
+                { name: t('home.services.item2'), img: SERVICE_IMAGES[1] },
+                { name: t('home.services.item3'), img: SERVICE_IMAGES[2] },
+                { name: t('home.services.item4'), img: SERVICE_IMAGES[3] },
+                { name: t('home.services.item5'), img: SERVICE_IMAGES[4] },
+                { name: t('home.services.item6'), img: SERVICE_IMAGES[5] },
+                { name: t('home.services.item7'), img: SERVICE_IMAGES[6] },
+              ].map((service, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="group relative flex w-[280px] shrink-0 snap-center flex-col overflow-hidden rounded-[24px] bg-white shadow-sm transition-all hover:shadow-xl sm:w-[320px] md:w-[350px]"
+                >
+                  <div className="relative aspect-[4/5] w-full overflow-hidden">
+                    <img
+                      src={service.img}
+                      alt={service.name}
+                      className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-brand-text/90 via-transparent to-transparent opacity-80 transition-opacity group-hover:opacity-90" />
+
+                    <div className="absolute bottom-0 left-0 w-full p-6 sm:p-8 translate-y-2 transition-transform duration-500 group-hover:translate-y-0">
+                      <p className="font-serif text-2xl sm:text-3xl font-bold leading-tight text-white mb-2">{service.name}</p>
+                      <div className="w-10 h-1 bg-brand-gold transform origin-left scale-x-0 transition-transform duration-500 delay-100 group-hover:scale-x-100"></div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+            {/* Mobile-only navigation hints if needed */}
+            <div className="absolute bottom-0 left-0 right-0 flex justify-center gap-2 md:hidden">
+              <button
+                onClick={() => scrollCarousel('left')}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-brand-border bg-white text-brand-text shadow-sm"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => scrollCarousel('right')}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-brand-border bg-white text-brand-text shadow-sm"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Reviews Section */}
       {visibleReviews.length > 0 && (
         <section className="home-reviews relative overflow-hidden border-b border-brand-border/50 bg-brand-bg/30 py-16 sm:py-24">
           <div className="mx-auto mb-10 max-w-7xl px-4 text-center sm:mb-12 sm:px-6">
-            <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-2 block">Ιστορίες Επισκεπτών</span>
-            <h2 className="text-4xl font-bold serif-font">Τι λένε για εμάς</h2>
+            <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-2 block">{t('home.reviews.subtitle')}</span>
+            <h2 className="text-4xl font-bold serif-font">{t('home.reviews.title')}</h2>
           </div>
 
           <div className="home-reviews-grid mx-auto max-w-7xl px-4 pb-6 sm:px-6 sm:pb-8">
@@ -244,9 +368,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         <section className="home-people overflow-hidden bg-white px-4 py-20 sm:px-6 sm:py-32">
           <div className="mx-auto max-w-7xl">
             <div className="mb-12 text-center sm:mb-20">
-              <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">Η Ομάδα</span>
-              <h2 className="text-5xl font-bold serif-font mb-4">Οι Άνθρωποί μας</h2>
-              <p className="text-brand-text/40 text-sm uppercase tracking-widest font-bold">Οι καρδιές πίσω από τις εμπειρίες</p>
+              <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">{t('home.people.subtitle')}</span>
+              <h2 className="text-5xl font-bold serif-font mb-4">{t('home.people.title')}</h2>
+              <p className="text-brand-text/40 text-sm uppercase tracking-widest font-bold">{t('home.people.desc')}</p>
             </div>
 
             <div className="home-people-grid">
@@ -343,9 +467,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
       <section className="home-feedback bg-brand-bg/20 px-4 py-20 sm:px-6 sm:py-32">
         <div className="mx-auto max-w-4xl">
           <div className="mb-12 text-center sm:mb-16">
-            <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">Σχόλια</span>
-            <h2 className="text-5xl font-bold serif-font mb-4">Γράψτε μια Κριτική</h2>
-            <p className="text-brand-text/40 text-sm uppercase tracking-widest font-bold">Η εμπειρία σας έχει σημασία για εμάς</p>
+            <span className="text-brand-gold font-bold text-[10px] uppercase tracking-[0.4em] mb-4 block">{t('home.feedback.subtitle')}</span>
+            <h2 className="text-5xl font-bold serif-font mb-4">{t('home.feedback.title')}</h2>
+            <p className="text-brand-text/40 text-sm uppercase tracking-widest font-bold">{t('home.feedback.desc')}</p>
           </div>
 
           <div className="rounded-[28px] border border-brand-border bg-white p-6 shadow-xl sm:rounded-[40px] sm:p-8 md:p-12">
@@ -358,31 +482,31 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                 <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
                   <CheckCircle2 className="w-10 h-10" />
                 </div>
-                <h3 className="text-2xl font-bold serif-font mb-2">Ευχαριστούμε!</h3>
-                <p className="text-brand-text/60">Η κριτική σας υποβλήθηκε επιτυχώς.</p>
+                <h3 className="text-2xl font-bold serif-font mb-2">{t('home.feedback.thanks')}</h3>
+                <p className="text-brand-text/60">{t('home.feedback.success')}</p>
                 <button
                   onClick={() => setSubmitted(false)}
                   className="mt-8 text-brand-gold font-bold uppercase tracking-widest text-[10px] hover:underline"
                 >
-                  Υποβολή άλλης κριτικής
+                  {t('home.feedback.submitAnother')}
                 </button>
               </motion.div>
             ) : (
               <form onSubmit={handleReviewSubmit} className="space-y-8">
                 <div className="grid gap-8 md:grid-cols-2">
                   <div className="space-y-2">
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Όνομα</label>
+                    <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">{t('home.feedback.name')}</label>
                     <input
                       required
                       type="text"
                       value={reviewForm.name}
                       onChange={e => setReviewForm({ ...reviewForm, name: e.target.value })}
                       className="w-full px-0 py-3 bg-transparent border-b border-brand-border outline-none focus:border-brand-gold transition-colors text-lg serif-font"
-                      placeholder="Το όνομά σας"
+                      placeholder={t('home.feedback.namePlaceholder')}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Διεύθυνση Email</label>
+                    <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">{t('home.feedback.email')}</label>
                     <input
                       required
                       type="email"
@@ -393,7 +517,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Βαθμολογία</label>
+                    <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">{t('home.feedback.rating')}</label>
                     <div className="flex flex-wrap gap-2 py-2">
                       {[1, 2, 3, 4, 5].map((star) => (
                         <button
@@ -412,13 +536,13 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Η Εμπειρία σας</label>
+                  <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40">{t('home.feedback.experience')}</label>
                   <textarea
                     required
                     value={reviewForm.review}
                     onChange={e => setReviewForm({ ...reviewForm, review: e.target.value })}
                     className="w-full px-0 py-3 bg-transparent border-b border-brand-border outline-none focus:border-brand-gold transition-colors text-lg serif-font min-h-[120px] resize-none"
-                    placeholder="Πείτε μας για το Σαββατοκύριακό σας..."
+                    placeholder={t('home.feedback.experiencePlaceholder')}
                   />
                 </div>
 
@@ -428,9 +552,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
                     disabled={isSubmitting}
                     className="w-full md:w-auto px-12 py-5 bg-brand-text text-brand-bg rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-brand-gold transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Υποβολή...' : (
+                    {isSubmitting ? t('home.feedback.submitting') : (
                       <>
-                        Υποβολή Κριτικής <Send className="w-4 h-4" />
+                        {t('home.feedback.submit')} <Send className="w-4 h-4" />
                       </>
                     )}
                   </button>
@@ -447,7 +571,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         }
 
         .home-hero-title {
-          max-width: 7.7em;
+          max-width: 100%;
           text-wrap: balance;
         }
 
@@ -482,6 +606,10 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
           .home-person-card {
             max-width: 340px;
+          }
+
+          .home-hero-title {
+            max-width: 7.7em;
           }
         }
 

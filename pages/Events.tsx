@@ -62,13 +62,16 @@ const Events: React.FC = () => {
       <MessageDisplay message={message} setMessage={setMessage} />
       <div className="events-page mx-auto min-h-screen max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-14">
         <header className="mb-12 text-center md:mb-20">
-          <div className="flex justify-center mb-1">
+          <div className="flex justify-end mb-1">
             <svg className="w-10 h-10 text-brand-gold" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" />
             </svg>
           </div>
-          <h1 className="text-5xl md:text-8xl font-bold serif-font mb-6 italic tracking-tight">Επόμενες Εκδηλώσεις</h1>
-          {/* <p className="text-xl opacity-60 font-light max-w-2xl mx-auto">Thoughtfully designed experiences for the discerning traveler. Limited availability per shift.</p> */}
+          <h1 className="text-5xl md:text-8xl font-bold serif-font mb-6 italic tracking-tight">Upcoming Events</h1>
+          <p className="text-xl opacity-80 font-light max-w-2xl mx-auto mb-8">
+            Ψάχνεις πώς να διασκεδάσεις αυτή την εβδομάδα;<br />
+            Στη weekplore διοργανώνουμε events και δραστηριότητες που κάνουν τις μέρες σου πιο ζωντανές, χαρούμενες, δημιουργικές - όπως τους αξίζει!
+          </p>
 
           {/*  <div className="flex overflow-x-auto md:justify-center gap-3 md:gap-4 mt-12 pb-4 px-2 scrollbar-hide snap-x">
         {categories.map(cat => (

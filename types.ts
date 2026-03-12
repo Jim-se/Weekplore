@@ -88,6 +88,8 @@ export interface PrivateEventInquiryFormData {
   date_approx: string; // YYYY-MM-DD
   setting: string;
   has_activity: boolean;
+  activity?: string;
+  food?: string;
   decoration_budget: number;
   message: string;
   area: string;

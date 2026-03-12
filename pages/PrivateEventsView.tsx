@@ -69,8 +69,10 @@ const PrivateEventsView: React.FC = () => {
             </svg>
           </div>
           <h1 className="mb-6 text-5xl font-bold italic tracking-tight serif-font md:text-8xl">Private Events</h1>
-          <p className="mx-auto max-w-2xl text-sm text-brand-text/60 sm:text-base">
-            Browse private-event formats the same way you browse normal events. Start with a custom request or choose one of the admin-managed entries below.
+          <p className="mx-auto max-w-2xl text-sm text-brand-text/80 sm:text-base space-y-2">
+            <span>Θέλεις να διοργανώσεις ένα ιδιωτικό event; Δημιούργησε το δικό σου ή εμπνεύσου από κάποια από τις ιδέες μας.</span><br /><br />
+            <span>Η ομάδα μας θα εξετάσει προσεκτικά όλα τα στοιχεία που θα μας δώσεις και θα επανέλθει με προτάσεις ειδικά για εσένα, τις οποίες θα σου παρουσιάσουμε μέσω κλήσης.</span><br /><br />
+            <span>Στόχος μας είναι να σχεδιάσουμε μαζί τη μέρα σου ακριβώς όπως τη φαντάστηκες – με κάθε λεπτομέρεια να αποτυπώνει την προσωπική σου αισθητική και όσα έχεις ονειρευτεί.</span>
           </p>
         </header>
 
