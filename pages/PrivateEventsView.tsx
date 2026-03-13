@@ -91,87 +91,75 @@ const PrivateEventsView: React.FC = () => {
             {/* Lead Cards: Bespoke & Setup */}
             <div className="flex flex-col w-full items-center justify-center gap-10 md:flex-row md:items-stretch lg:gap-14">
               {/* Bespoke / Custom */}
-              <div className="group relative flex w-full max-w-[500px] flex-col overflow-hidden rounded-[32px] border border-white/10 bg-brand-text shadow-[0_20px_40px_rgba(0,0,0,0.3)] transition-all duration-700 hover:-translate-y-2 sm:rounded-[48px]">
-                {/* Visual Immersive Background */}
-                <div className="absolute inset-0 z-0 scale-105 transition-transform duration-[4s] group-hover:scale-110">
-                  <img 
-                    src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80" 
-                    alt="Custom Event" 
-                    className="h-full w-full object-cover"
+              <div className="group flex w-full max-w-[400px] flex-col overflow-hidden rounded-[28px] border border-brand-border bg-white shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[40px]">
+                <div className="relative aspect-[16/10] shrink-0 overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80"
+                    alt="Custom Event"
+                    className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-tr from-brand-text via-brand-text/80 to-transparent" />
-                  <div className="absolute inset-0 bg-black/20" />
+                  <div className="absolute bottom-4 right-4 rounded-2xl bg-brand-gold px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-xl sm:bottom-6 sm:right-6 sm:px-5">
+                    {t('private.customLabel', { stripAccents: true })}
+                  </div>
                 </div>
 
-                <div className="relative z-10 flex flex-grow flex-col p-10 sm:p-12 min-h-[480px]">
-                  <div className="mb-auto">
-                    <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-brand-gold/20 px-4 py-2 text-[8px] font-bold uppercase tracking-[0.4em] text-brand-gold backdrop-blur-xl border border-brand-gold/30">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-gold animate-pulse" />
-                      {t('private.customLabel', { stripAccents: true })}
-                    </div>
-                    <h3 className="text-3xl font-serif font-bold leading-tight tracking-tight text-white mb-6 md:text-4xl">
-                      {createYourOwnEntry.name.split(' ').map((word, i) => (
-                        <span key={i} className={i === 1 ? "italic text-brand-gold inline-block mr-2" : "inline-block mr-2"}>{word}</span>
-                      ))}
+                <div className="flex flex-grow flex-col p-5 sm:p-6 md:p-8">
+                  <div className="mb-4">
+                    <h3 className="text-xl font-serif font-bold leading-tight text-brand-text transition-colors group-hover:text-brand-terracotta md:text-2xl">
+                      {createYourOwnEntry.name}
                     </h3>
-                    <p className="max-w-sm text-sm leading-relaxed text-white/60">
-                      {createYourOwnEntry.description}
-                    </p>
                   </div>
 
-                  <div className="mt-8">
+                  <p className="mb-8 text-sm leading-relaxed text-brand-text/60">
+                    {createYourOwnEntry.description}
+                  </p>
+
+                  <div className="mt-auto pt-4">
                     <button
                       type="button"
                       onClick={() => setSelectedEventForInquiry({
                         eventName: createYourOwnEntry.name,
                         isCustom: true
                       })}
-                      className="group/btn relative flex min-h-[56px] w-full items-center justify-center gap-4 overflow-hidden rounded-full bg-brand-gold px-8 py-4 text-[10px] font-bold uppercase tracking-[0.4em] text-brand-text shadow-xl transition-all hover:bg-white hover:text-brand-text"
+                      className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-brand-text px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-bg shadow-lg transition-all hover:bg-brand-gold"
                     >
-                      <span className="relative z-10">{t('private.inquire', { stripAccents: true })}</span>
-                      <ArrowRight className="relative z-10 h-5 w-5 transition-transform group-hover/btn:translate-x-2" />
+                      {t('private.inquire', { stripAccents: true })} <ArrowRight className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Ready Set Up Events Card */}
-              <div className="group relative flex w-full max-w-[500px] flex-col overflow-hidden rounded-[32px] border border-white/10 bg-brand-text shadow-[0_20px_40px_rgba(0,0,0,0.3)] transition-all duration-700 hover:-translate-y-2 sm:rounded-[48px]">
-                {/* Visual Immersive Background */}
-                <div className="absolute inset-0 z-0 scale-105 transition-transform duration-[4s] group-hover:scale-110">
-                  <img 
-                    src="https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&q=80" 
-                    alt="Ready Events" 
-                    className="h-full w-full object-cover"
+              <div className="group flex w-full max-w-[400px] flex-col overflow-hidden rounded-[28px] border border-brand-border bg-white shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[40px]">
+                <div className="relative aspect-[16/10] shrink-0 overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&q=80"
+                    alt="Ready Events"
+                    className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-tl from-brand-text via-brand-text/80 to-transparent" />
-                  <div className="absolute inset-0 bg-black/20" />
+                  <div className="absolute bottom-4 right-4 rounded-2xl bg-brand-text px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-bg shadow-xl sm:bottom-6 sm:right-6 sm:px-5">
+                    {t('private.existingLabel', { stripAccents: true })}
+                  </div>
                 </div>
 
-                <div className="relative z-10 flex flex-grow flex-col p-10 sm:p-12 min-h-[480px]">
-                  <div className="mb-auto">
-                    <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-[8px] font-bold uppercase tracking-[0.4em] text-brand-gold backdrop-blur-xl border border-white/20">
-                      <span className="h-1.5 w-1.5 rounded-full bg-brand-gold" />
-                      {t('private.existingLabel', { stripAccents: true })}
-                    </div>
-                    <h3 className="text-3xl font-serif font-bold leading-tight tracking-tight text-white mb-6 md:text-4xl">
-                      {t('private.existingLabel').split(' ').map((word, i, arr) => (
-                        <span key={i} className={i === arr.length - 1 ? "italic text-brand-gold inline-block mr-2" : "inline-block mr-2"}>{word}</span>
-                      ))}
+                <div className="flex flex-grow flex-col p-5 sm:p-6 md:p-8">
+                  <div className="mb-4">
+                    <h3 className="text-xl font-serif font-bold leading-tight text-brand-text transition-colors group-hover:text-brand-terracotta md:text-2xl">
+                      {t('private.existingLabel')}
                     </h3>
-                    <p className="max-w-sm text-sm leading-relaxed text-white/60">
-                      {t('private.existingDesc')}
-                    </p>
                   </div>
 
-                  <div className="mt-8">
+                  <p className="mb-8 text-sm leading-relaxed text-brand-text/60">
+                    {t('private.existingDesc')}
+                  </p>
+
+                  <div className="mt-auto pt-4">
                     <button
                       type="button"
                       onClick={scrollToSetupEvents}
-                      className="group/btn flex min-h-[56px] w-full items-center justify-center gap-4 rounded-full border border-white/20 bg-white/5 px-8 py-4 text-[10px] font-bold uppercase tracking-[0.4em] text-white backdrop-blur-3xl transition-all hover:bg-white hover:text-brand-text hover:border-white shadow-xl"
+                      className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full border border-brand-text bg-white px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text shadow-sm transition-all hover:bg-brand-text hover:text-white"
                     >
-                      <span>{t('private.seeExisting', { stripAccents: true })}</span>
-                      <ArrowRight className="h-5 w-5 rotate-90 transition-transform group-hover/btn:translate-y-2" />
+                      {t('private.seeExisting', { stripAccents: true })} <ArrowRight className="h-4 w-4 rotate-90" />
                     </button>
                   </div>
                 </div>
