@@ -99,7 +99,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'private_events' | 'email_templates' | 'reviews' | 'people'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'private_events' | 'email_templates' | 'reviews' | 'people' | 'archive'>('dashboard');
   const [events, setEvents] = useState<any[]>([]);
   const [privateEvents, setPrivateEvents] = useState<PrivateEvent[]>([]);
   const [privateEventInquiries, setPrivateEventInquiries] = useState<any[]>([]);
@@ -773,6 +773,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               <User className="w-5 h-5" />
               <span className="text-sm">People</span>
             </button>
+            <button
+              onClick={() => setActiveTab('archive')}
+              className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'archive' ? 'bg-brand-bg text-brand-gold font-bold shadow-sm' : 'text-brand-text/60 hover:bg-brand-bg'}`}
+            >
+              <ShieldAlert className="w-5 h-5" />
+              <span className="text-sm">Archive</span>
+            </button>
           </nav>
 
           <div className="mt-auto pt-8 border-t border-brand-border">
@@ -788,6 +795,80 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
         {/* Main Content */}
         <main className="flex-1 p-6 md:p-12 overflow-y-auto">
+          {activeTab === 'archive' && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Canceled Events */}
+              <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-red-50 rounded-2xl text-red-600">
+                    <ShieldAlert className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900">Archived Events</h2>
+                    <p className="text-sm text-slate-500">Events that have been canceled</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {events.filter(e => e.status === 'canceled').length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-2xl">
+                      <p className="text-slate-400 font-medium">No archived events</p>
+                    </div>
+                  ) : (
+                    events.filter(e => e.status === 'canceled').map(event => (
+                      <div key={event.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h3 className="font-bold text-slate-900">{event.title}</h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Original Date: {formatSafeDate(event.event_date)}
+                        </p>
+                        <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-red-600 bg-red-50 px-2 py-1 rounded inline-block">
+                          Canceled
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Canceled Shifts */}
+              <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-orange-50 rounded-2xl text-orange-600">
+                    <Clock className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-900">Archived Shifts</h2>
+                    <p className="text-sm text-slate-500">Individual shifts that were canceled</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {(() => {
+                    const canceledShifts = events.flatMap(e => (e.shifts || []).filter((s: any) => s.status === 'canceled').map((s: any) => ({ ...s, eventTitle: e.title })));
+                    if (canceledShifts.length === 0) {
+                      return (
+                        <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-2xl">
+                          <p className="text-slate-400 font-medium">No archived shifts</p>
+                        </div>
+                      );
+                    }
+                    return canceledShifts.map(shift => (
+                      <div key={shift.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <h3 className="font-bold text-slate-900">{shift.eventTitle}</h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {formatSafeDate(shift.start_time)} @ {formatSafeTime(shift.start_time)}
+                        </p>
+                        <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-1 rounded inline-block">
+                          Canceled
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'dashboard' ? (
             <div className="space-y-10">
               <header className="flex justify-between items-end">

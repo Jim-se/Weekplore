@@ -98,9 +98,6 @@ const PrivateEventsView: React.FC = () => {
                     alt="Custom Event"
                     className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
                   />
-                  <div className="absolute bottom-4 right-4 rounded-2xl bg-brand-gold px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white shadow-xl sm:bottom-6 sm:right-6 sm:px-5">
-                    {t('private.customLabel', { stripAccents: true })}
-                  </div>
                 </div>
 
                 <div className="flex flex-grow flex-col p-5 sm:p-6 md:p-8">

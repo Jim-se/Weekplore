@@ -21,7 +21,7 @@ const translations: Record<Language, Record<string, string>> = {
         'home.authentic': 'Αυθεντικές Εμπειρίες',
         'home.heroTitle1': 'Η εβδομάδα σου,',
         'home.heroTitle2': 'η απόφαση σου.',
-        'home.heroDesc': 'Έχεις ξεμείνει ποτέ από ιδέες για βόλτα ;\nΈχεις βρεθεί να θέλεις να κάνεις κάτι όμορφο αλλά να μην έχεις παρέα ;\nΣτη weekplore κάθε εβδομάδα διοργανώνουμε events και δραστηριότητες που κάνουν τις μέρες σου πιο ζωντανές , χαρούμενες , δημιουργικές - όπως τους αξίζει !',
+        'home.heroDesc': 'Ψάχνεις πως να διασκεδάσεις αυτή την εβδομάδα;\nΈχεις βρεθεί να θέλεις να κάνεις κάτι όμορφο αλλά να μην έχεις παρέα ;\nΣτη weekplore κάθε εβδομάδα διοργανώνουμε events και δραστηριότητες που κάνουν τις μέρες σου πιο ζωντανές , χαρούμενες , δημιουργικές - όπως τους αξίζει !',
         'home.viewEvents': 'Δες τις Εκδηλώσεις',
         'home.ourStory': 'Η Ιστορία μας',
 
@@ -135,7 +135,7 @@ const translations: Record<Language, Record<string, string>> = {
         'booking.plural.guests': 'Επισκέπτες',
 
         // Private Event Form
-        'inquiry.title': 'Εκδήλωση Ενδιαφέροντος',
+        'inquiry.title': 'Ενδιαφέρομαι',
         'inquiry.subtitle': 'Παρακαλώ δώστε μερικές λεπτομέρειες',
         'inquiry.yourDetails': 'Τα Στοιχεία σας',
         'inquiry.firstName': 'Όνομα',
@@ -170,9 +170,8 @@ const translations: Record<Language, Record<string, string>> = {
         'private.createYourOwnDesc': 'Πείτε μας τι θέλετε να οργανώσετε και θα διαμορφώσουμε μια ιδιωτική εμπειρία γύρω από την ομάδα σας, το χρόνο και τη διάθεσή σας.',
         'private.loadError': 'Δεν ήταν δυνατή η φόρτωση των ιδιωτικών εκδηλώσεων αυτή τη στιγμή.',
         'private.success': 'Ευχαριστούμε για το ενδιαφέρον σας! Θα επικοινωνήσουμε μαζί σας πολύ σύντομα με την τιμή.',
-        'private.inquire': 'Εκδήλωση Ενδιαφέροντος',
+        'private.inquire': 'Ενδιαφέρομαι',
         'private.privateLabel': 'Ιδιωτικό',
-        'private.customLabel': 'Bespoke',
         'private.placeholderDesc': 'Λεπτομέρειες για την ιδιωτική εκδήλωση θα προστεθούν εδώ από τον διαχειριστή.',
         'private.existingLabel': 'ΕΤΟΙΜΕΣ ΕΚΔΗΛΩΣΕΙΣ',
         'private.existingDesc': 'Εξερευνήστε το πακέτο των ήδη σχεδιασμένων εκδηλώσεών μας που μπορείτε να κλείσετε άμεσα για την ομάδα σας.',
@@ -371,7 +370,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // Check if user has explicitly set a preference
         const savedLang = localStorage.getItem('site_language') as Language;
         let activeLang: Language = 'gr';
-        
+
         if (savedLang) {
             activeLang = savedLang;
         } else {
@@ -381,7 +380,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 activeLang = 'en';
             }
         }
-        
+
         setLanguageState(activeLang);
         document.documentElement.lang = activeLang === 'gr' ? 'el' : 'en';
         setIsInitialized(true);
@@ -395,7 +394,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     const t = (key: string, params?: Record<string, any>): string => {
         let text = translations[language][key] || key;
-        
+
         if (params) {
             Object.entries(params).forEach(([k, v]) => {
                 text = text.replace(`{${k}}`, v);

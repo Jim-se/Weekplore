@@ -25,7 +25,7 @@ const PrivateEvents: React.FC = () => {
                 Στόχος μας είναι να σχεδιάσουμε μαζί τη μέρα σου ακριβώς όπως τη φαντάστηκες – με κάθε λεπτομέρεια να αποτυπώνει την προσωπική σου αισθητική και όσα έχεις ονειρευτεί.
               </p>
               <button className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-brand-text px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-brand-bg transition-all hover:bg-brand-gold sm:w-auto sm:px-10 sm:py-5">
-                Εκδήλωση Ενδιαφέροντος <ArrowRight className="w-4 h-4" />
+                Ενδιαφέρομαι <ArrowRight className="w-4 h-4" />
               </button>
             </div>
             <div className="relative aspect-[4/5] overflow-hidden rounded-[28px] shadow-2xl sm:rounded-[40px]">

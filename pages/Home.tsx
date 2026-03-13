@@ -144,30 +144,35 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
           <div className="relative mx-auto w-full max-w-md lg:col-span-5 lg:max-w-[32rem] xl:max-w-[36rem]">
             <div className="relative z-10 aspect-[3/4] overflow-hidden rounded-[32px] shadow-2xl sm:rounded-[48px] md:rounded-[60px]">
-              <AnimatePresence mode="wait">
+              <AnimatePresence initial={false}>
                 <motion.img
                   key={currentHero}
                   src={HERO_IMAGES[currentHero]}
                   alt="Weekplore Experience"
-                  initial={{ opacity: 0, scale: 1.1 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 1.5 }}
-                  className="w-full h-full object-cover"
+                  transition={{ duration: 0.6 }}
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
               </AnimatePresence>
 
-              {/* Carousel Controls */}
-              <div className="absolute bottom-5 left-5 z-20 flex gap-2 sm:bottom-8 sm:left-8 sm:gap-3 md:bottom-10 md:left-10">
-                {HERO_IMAGES.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentHero(idx)}
-                    className={`h-1.5 rounded-full transition-all duration-500 ${currentHero === idx ? 'w-8 bg-white sm:w-10' : 'w-2 bg-white/40'
-                      }`}
-                  />
-                ))}
+              {/* Minimal Manual Arrows */}
+              <div className="absolute inset-0 z-30 flex items-center justify-between px-4 pointer-events-none">
+                <button 
+                  onClick={() => setCurrentHero((prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length)}
+                  className="pointer-events-auto p-2 text-white/30 hover:text-white transition-all hover:scale-110"
+                >
+                  <ChevronLeft size={40} strokeWidth={1.5} />
+                </button>
+                <button 
+                  onClick={() => setCurrentHero((prev) => (prev + 1) % HERO_IMAGES.length)}
+                  className="pointer-events-auto p-2 text-white/30 hover:text-white transition-all hover:scale-110"
+                >
+                  <ChevronRight size={40} strokeWidth={1.5} />
+                </button>
               </div>
+
             </div>
 
             <div className="absolute -bottom-10 -left-10 z-20 aspect-square w-48 rounded-3xl overflow-hidden shadow-xl -rotate-6 hidden md:block">

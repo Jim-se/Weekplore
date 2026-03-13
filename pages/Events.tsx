@@ -64,15 +64,12 @@ const Events: React.FC = () => {
       <MessageDisplay message={message} setMessage={setMessage} />
       <div className="events-page mx-auto min-h-screen max-w-7xl px-4 pb-16 pt-10 sm:px-6 sm:pb-20 sm:pt-14">
         <header className="mb-12 text-center md:mb-20">
-          <div className="flex justify-end mb-1">
-            <svg className="w-10 h-10 text-brand-gold" viewBox="0 0 24 24" fill="currentColor">
+          <h1 className="text-5xl md:text-8xl font-bold serif-font mb-6 italic tracking-tight flex items-center justify-center gap-4">
+            {t('events.title')}
+            <svg className="w-8 h-8 md:w-16 md:h-16 text-brand-gold shrink-0" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L13.5 10.5L22 12L13.5 13.5L12 22L10.5 13.5L2 12L10.5 10.5L12 2Z" />
             </svg>
-          </div>
-          <h1 className="text-5xl md:text-8xl font-bold serif-font mb-6 italic tracking-tight">{t('events.title')}</h1>
-          <p className="text-xl opacity-80 font-light max-w-2xl mx-auto mb-8 whitespace-pre-line">
-            {t('events.desc')}
-          </p>
+          </h1>
 
           {/*  <div className="flex overflow-x-auto md:justify-center gap-3 md:gap-4 mt-12 pb-4 px-2 scrollbar-hide snap-x">
         {categories.map(cat => (
