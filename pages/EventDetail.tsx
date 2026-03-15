@@ -56,6 +56,51 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
     return () => clearInterval(timer);
   }, [gallery.length]);
 
+  const getFriendlyBookingErrorMessage = (error: unknown) => {
+    const serverMessage = error instanceof Error ? error.message.trim() : '';
+    const normalizedMessage = serverMessage.toLowerCase();
+
+    if (!serverMessage || normalizedMessage === 'failed to create booking' || normalizedMessage === 'failed to create booking. please try again later.') {
+      return t('common.error');
+    }
+
+    if (
+      normalizedMessage.includes('already has a booking for this time slot') ||
+      normalizedMessage.includes('already booked this shift') ||
+      normalizedMessage.includes('already being processed')
+    ) {
+      return language === 'gr'
+        ? 'Αυτό το email έχει ήδη κάνει κράτηση για αυτή την ώρα. Αν θέλετε αλλαγή, επικοινωνήστε μαζί μας και θα βοηθήσουμε.'
+        : 'This email already has a booking for this time slot. If you need to make a change, contact us and we will help.';
+    }
+
+    if (normalizedMessage === 'this experience is not currently bookable.') {
+      return language === 'gr'
+        ? 'Αυτή η εμπειρία δεν είναι διαθέσιμη για κράτηση αυτή τη στιγμή.'
+        : 'This experience is not available for booking right now.';
+    }
+
+    if (normalizedMessage === 'the booking deadline for this experience has passed.') {
+      return language === 'gr'
+        ? 'Η προθεσμία κρατήσεων για αυτή την εμπειρία έχει λήξει.'
+        : 'The booking deadline for this experience has passed.';
+    }
+
+    if (normalizedMessage === 'this shift is already full.') {
+      return language === 'gr'
+        ? 'Αυτή η ώρα έχει ήδη γεμίσει.'
+        : 'This time slot is already full.';
+    }
+
+    if (normalizedMessage === 'this shift is not active.') {
+      return language === 'gr'
+        ? 'Αυτή η ώρα δεν είναι πλέον διαθέσιμη.'
+        : 'This time slot is no longer available.';
+    }
+
+    return serverMessage;
+  };
+
   const handleBookingSubmit = async (data: BookingFormData) => {
     if (!event) return;
     try {
@@ -64,7 +109,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
       setIsBookingModalOpen(false);
     } catch (error) {
       console.error('Booking error:', error);
-      setMessage({ type: 'error', text: t('common.error') });
+      setMessage({ type: 'error', text: getFriendlyBookingErrorMessage(error) });
     }
   };
 
