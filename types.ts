@@ -9,6 +9,7 @@ export interface Shift {
   is_active: boolean;
   is_full: boolean;
   people_counter: number;
+  status?: string | null;
 }
 
 export interface EventImage {
@@ -20,17 +21,30 @@ export interface EventImage {
 
 export interface EmailTemplate {
   id: number;
-  subject: string;
-  body: string;
+  subject_eng?: string | null;
+  body_eng?: string | null;
+  subject_el?: string | null;
+  body_el?: string | null;
+  subject?: string | null;
+  body?: string | null;
 }
 
 export interface Product {
   id: string;
-  event_id: number;
+  event_id?: number;
+  category_id?: number | string | null;
   title: string;
   description: string;
   price: number;
   image_url?: string | null;
+}
+
+export interface ProductCategory {
+  id: number | string;
+  event_id?: number;
+  created_at?: string;
+  name: string;
+  products?: Product[];
 }
 
 export interface WeekploreEvent {
@@ -47,9 +61,11 @@ export interface WeekploreEvent {
   cover_image_url: string;
   is_sold_out: boolean;
   is_hidden: boolean;
+  status?: string | null;
   shifts?: Shift[];
   images?: EventImage[];
   products?: Product[];
+  product_categories?: ProductCategory[];
   category?: 'Outdoor' | 'Creative' | 'Social'; // Adding back for UI filtering if needed, though not in schema
 }
 
@@ -83,6 +99,7 @@ export interface PrivateEventInquiryFormData {
   first_name: string;
   last_name: string;
   email: string;
+  email_language?: 'el' | 'en';
   phone: string;
   number_of_people: number;
   date_approx: string; // YYYY-MM-DD
@@ -101,6 +118,7 @@ export interface BookingFormData {
   fullName: string;
   phone: string;
   email: string;
+  email_language?: 'el' | 'en';
   shiftId: number;
   numberOfPeople: number;
   products?: { product_id: string; quantity: number }[];

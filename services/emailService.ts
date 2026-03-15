@@ -13,8 +13,12 @@ const getAuthHeaders = async (contentType = true) => {
 
 export interface EmailTemplate {
   id: string | number;
-  subject: string;
-  body: string;
+  subject_eng?: string | null;
+  body_eng?: string | null;
+  subject_el?: string | null;
+  body_el?: string | null;
+  subject?: string | null;
+  body?: string | null;
   purpose?: string | null;
   created_at?: string;
 }
@@ -53,7 +57,7 @@ export const emailService = {
     return await response.json() as EmailTemplate[];
   },
 
-  async createTemplate(template: Pick<EmailTemplate, 'subject' | 'body'>) {
+  async createTemplate(template: Pick<EmailTemplate, 'subject_eng' | 'body_eng' | 'subject_el' | 'body_el'>) {
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl('/api/admin/email-templates'), {
       method: 'POST',
@@ -64,7 +68,7 @@ export const emailService = {
     return await response.json() as EmailTemplate;
   },
 
-  async updateTemplate(id: string | number, template: Partial<Pick<EmailTemplate, 'subject' | 'body'>>) {
+  async updateTemplate(id: string | number, template: Partial<Pick<EmailTemplate, 'subject_eng' | 'body_eng' | 'subject_el' | 'body_el'>>) {
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl(`/api/admin/email-templates/${id}`), {
       method: 'PUT',

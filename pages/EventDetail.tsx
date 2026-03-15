@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { WeekploreEvent, BookingFormData } from '../types';
-import BookingModal from '../components/BookingModal';
+import BookingModal from '../components/BookingModalV2';
 import MessageDisplay from '../components/MessageDisplay';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, MapPin, Calendar, Clock } from 'lucide-react';
@@ -93,7 +93,10 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
     );
   }
 
-  const availableShifts = event.shifts?.filter(s => !s.is_full && s.booked_spots < s.capacity) || [];
+  const bookableShifts = event.shifts?.filter(
+    s => s.is_active !== false && s.status !== 'canceled' && s.status !== 'cancelled' && s.status !== 'archived'
+  ) || [];
+  const availableShifts = bookableShifts.filter(s => !s.is_full && s.booked_spots < s.capacity);
   const isSoldOut = event.is_sold_out || availableShifts.length === 0;
 
   return (
@@ -241,7 +244,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
                   <div>
                     <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-4">{t('common.availableShifts', { stripAccents: true })}</p>
                     <div className="grid grid-cols-1 gap-3">
-                      {event.shifts?.map(shift => {
+                      {bookableShifts.map(shift => {
                         const isFull = shift.is_full || shift.booked_spots >= shift.capacity;
                         const timeStr = (() => {
                           const start = new Date(shift.start_time);

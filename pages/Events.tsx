@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { WeekploreEvent, BookingFormData } from '../types';
-import BookingModal from '../components/BookingModal';
+import BookingModal from '../components/BookingModalV2';
 import EventCard from '../components/EventCard';
 import MessageDisplay from '../components/MessageDisplay';
 import { eventService } from '../services/eventService';

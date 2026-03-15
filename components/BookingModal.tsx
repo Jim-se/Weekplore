@@ -1,7 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { WeekploreEvent, Shift, BookingFormData } from '../types';
+import { WeekploreEvent, BookingFormData } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
+import {
+  flattenProductCategories,
+  getCategoryKey,
+  getDefaultProductForCategory,
+  getSelectableProductCategories,
+} from '../lib/productUtils';
 
 interface BookingModalProps {
   event: WeekploreEvent;
@@ -11,20 +17,25 @@ interface BookingModalProps {
 
 const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit }) => {
   const { language, t } = useLanguage();
-  const availableShifts = event.shifts?.filter(s => !s.is_full && s.booked_spots < s.capacity) || [];
+  const bookableShifts = event.shifts?.filter(
+    s => s.is_active !== false && s.status !== 'canceled' && s.status !== 'archived'
+  ) || [];
+  const availableShifts = bookableShifts.filter(s => !s.is_full && s.booked_spots < s.capacity);
   
   const locale = language === 'gr' ? 'el-GR' : 'en-US';
+  const selectableProductCategories = getSelectableProductCategories(event.product_categories || []);
+  const flatProducts = event.products || flattenProductCategories(event.product_categories || []);
 
   const [formData, setFormData] = useState<BookingFormData>({
     fullName: '',
     phone: '',
     email: '',
-    shiftId: availableShifts[0]?.id || 0,
+    shiftId: availableShifts[0]?.id || bookableShifts[0]?.id || 0,
     numberOfPeople: 1,
     products: []
   });
 
-  const [personSelections, setPersonSelections] = useState<string[]>([]);
+  const [personSelections, setPersonSelections] = useState<Record<string, string>[]>([]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -33,32 +44,43 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
     };
   }, []);
 
-  // Initialize/Sync person selections based on numberOfPeople
   useEffect(() => {
-    if (!event.products || event.products.length === 0) {
+    const categories = getSelectableProductCategories(event.product_categories || []);
+
+    if (categories.length === 0) {
       setPersonSelections([]);
       return;
     }
-    
-    const defaultProductId = event.products.find(p => p.price === 0)?.id || event.products[0].id;
-    
-    setPersonSelections(prev => {
-      const newSels = [...prev];
-      if (newSels.length > formData.numberOfPeople) {
-        return newSels.slice(0, formData.numberOfPeople);
-      }
-      while (newSels.length < formData.numberOfPeople) {
-        newSels.push(defaultProductId);
-      }
-      return newSels;
-    });
-  }, [formData.numberOfPeople, event.products]);
 
-  // Aggregate selections for form submission
+    setPersonSelections(prev => {
+      return Array.from({ length: formData.numberOfPeople }, (_, guestIndex) => {
+        const existingSelections = prev[guestIndex] || {};
+        const nextSelections: Record<string, string> = {};
+
+        categories.forEach(category => {
+          const categoryKey = getCategoryKey(category.id);
+          const existingProductId = existingSelections[categoryKey];
+          const isStillValid = category.products?.some(product => product.id === existingProductId);
+          const fallbackProduct = getDefaultProductForCategory(category);
+
+          if (isStillValid && existingProductId) {
+            nextSelections[categoryKey] = existingProductId;
+          } else if (fallbackProduct?.id) {
+            nextSelections[categoryKey] = fallbackProduct.id;
+          }
+        });
+
+        return nextSelections;
+      });
+    });
+  }, [formData.numberOfPeople, event.product_categories]);
+
   useEffect(() => {
     const counts: Record<string, number> = {};
-    personSelections.forEach(id => {
-      if (id) counts[id] = (counts[id] || 0) + 1;
+    personSelections.forEach(selectionMap => {
+      Object.values(selectionMap).forEach(productId => {
+        if (productId) counts[productId] = (counts[productId] || 0) + 1;
+      });
     });
     
     const products = Object.entries(counts).map(([product_id, quantity]) => ({
@@ -70,6 +92,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
   }, [personSelections]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasCompleteProductSelections = selectableProductCategories.length === 0 || (
+    personSelections.length === formData.numberOfPeople &&
+    personSelections.every(selectionMap =>
+      selectableProductCategories.every(category => {
+        const selectedProductId = selectionMap[getCategoryKey(category.id)];
+        return category.products?.some(product => product.id === selectedProductId);
+      })
+    )
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +152,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
               <div className="space-y-4">
                 <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">{t('booking.step1', { stripAccents: true })}</label>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {event.shifts?.map((shift) => {
+                  {bookableShifts.map((shift) => {
                     const isFull = shift.is_full || shift.booked_spots >= shift.capacity;
                     const timeStr = (() => {
                       const start = new Date(shift.start_time);
@@ -231,7 +262,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
               </div>
 
               {/* Step 3: Individual Product Selection */}
-              {event.products && event.products.length > 0 && (
+              {selectableProductCategories.length > 0 && (
                 <div className="space-y-6">
                   <div className="flex justify-between items-end">
                     <label className="block text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold">{t('booking.step3', { stripAccents: true })}</label>
@@ -241,7 +272,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                       ? 'rounded-[32px] border border-brand-border bg-brand-bg/5 p-6 sm:p-8' 
                       : 'space-y-4'
                   }`}>
-                    {personSelections.map((selectedId, pIdx) => (
+                    {personSelections.map((selectionMap, pIdx) => (
                       <div key={pIdx} className={`flex flex-col gap-4 transition-all ${
                         formData.numberOfPeople > 1 && pIdx > 0 ? 'pt-6 mt-6 border-t border-brand-border/10' : ''
                       }`}>

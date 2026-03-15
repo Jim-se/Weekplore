@@ -7,6 +7,7 @@ import {
   Plus,
   LayoutDashboard,
   LogOut,
+  Archive,
   Trash2,
   Edit3,
   CheckCircle,
@@ -33,6 +34,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EmailTemplates from '../components/EmailTemplates';
+import ProductCategoryManager, { ProductDraft } from '../components/ProductCategoryManager';
 
 // Helper functions for safe date handling
 const safeToISOString = (dateStr: string | null | undefined) => {
@@ -66,6 +68,15 @@ const formatSafeTime = (dateStr: string | null | undefined) => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+const isArchivedStatus = (status: string | null | undefined) =>
+  status === 'archived' || status === 'canceled' || status === 'cancelled';
+
+const getActiveShifts = (shifts: any[] = []) =>
+  shifts.filter((shift) => !isArchivedStatus(shift?.status));
+
+const getShiftBookingCount = (shift: any) =>
+  shift?.bookings?.reduce((sum: number, booking: any) => sum + (booking.number_of_people || 0), 0) || 0;
+
 interface AdminProps {
   onNavigate: (page: string) => void;
 }
@@ -92,6 +103,17 @@ const MessageDisplay = ({ message, setMessage }: { message: any, setMessage: (ms
   </AnimatePresence>
 );
 
+const createEmptyProductDraft = (): ProductDraft => ({
+  category_id: '',
+  title: '',
+  description: '',
+  price: 0,
+  image_url: '',
+});
+
+const createTempCategoryId = () => `temp-category-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const createTempProductId = () => `temp-product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -110,6 +132,8 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [newPerson, setNewPerson] = useState({ name: '', description: '', photo_link: '' });
   const [editingPerson, setEditingPerson] = useState<any | null>(null);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [viewingArchivedEvent, setViewingArchivedEvent] = useState<any | null>(null);
+  const [highlightedArchivedShiftId, setHighlightedArchivedShiftId] = useState<number | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<any | null>(null);
   const [deletingShift, setDeletingShift] = useState<any | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<any | null>(null);
@@ -124,7 +148,8 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     people_counter: 0
   });
   const [isAddingProduct, setIsAddingProduct] = useState(false);
-  const [newProduct, setNewProduct] = useState({ title: '', description: '', price: 0, image_url: '' });
+  const [newProduct, setNewProduct] = useState<ProductDraft>(createEmptyProductDraft());
+  const [newProductCategoryName, setNewProductCategoryName] = useState('');
 
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -137,10 +162,12 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     location_name: '',
     location_address: '',
     shifts: [] as any[],
+    product_categories: [] as any[],
     products: [] as any[]
   });
   const [tempShift, setTempShift] = useState({ start_time: '', end_time: '', capacity: 999, people_counter: 0 });
-  const [tempProduct, setTempProduct] = useState({ title: '', description: '', price: 0 });
+  const [tempProductCategoryName, setTempProductCategoryName] = useState('');
+  const [tempProduct, setTempProduct] = useState<ProductDraft>(createEmptyProductDraft());
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -170,7 +197,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
   // Prevent background scrolling when modals are open
   useEffect(() => {
-    const isModalOpen = editingEvent || deletingEvent || deletingShift || deletingProduct || deletingPerson || viewingParticipantsShift || isAddingPerson;
+    const isModalOpen = editingEvent || viewingArchivedEvent || deletingEvent || deletingShift || deletingProduct || deletingPerson || viewingParticipantsShift || isAddingPerson;
     if (isModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -179,7 +206,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [editingEvent, deletingEvent, deletingShift, deletingProduct, deletingPerson, viewingParticipantsShift, isAddingPerson]);
+  }, [editingEvent, viewingArchivedEvent, deletingEvent, deletingShift, deletingProduct, deletingPerson, viewingParticipantsShift, isAddingPerson]);
 
   const checkUser = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -253,6 +280,28 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
       if (activeTab === 'people') fetchPeople();
     }
   }, [activeTab, user]);
+
+  useEffect(() => {
+    if (viewingArchivedEvent) {
+      const refreshedArchivedEvent = events.find((event) => event.id === viewingArchivedEvent.id);
+      if (refreshedArchivedEvent) {
+        setViewingArchivedEvent(refreshedArchivedEvent);
+        if (highlightedArchivedShiftId && !refreshedArchivedEvent.shifts?.some((shift: any) => shift.id === highlightedArchivedShiftId)) {
+          setHighlightedArchivedShiftId(null);
+        }
+      }
+    }
+
+    if (viewingParticipantsShift) {
+      for (const event of events) {
+        const matchingShift = event.shifts?.find((shift: any) => shift.id === viewingParticipantsShift.id);
+        if (matchingShift) {
+          setViewingParticipantsShift({ ...matchingShift, eventTitle: event.title });
+          break;
+        }
+      }
+    }
+  }, [events]);
 
   const handleUpdateReviewStatus = async (reviewId: string, status: 'pending' | 'invisible' | 'visible') => {
     try {
@@ -401,6 +450,10 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
       setMessage({ type: 'error', text: 'Please fill all required fields and add at least one image.' });
       return;
     }
+    if (newEvent.shifts.length === 0) {
+      setMessage({ type: 'error', text: 'Add at least one shift before creating the event.' });
+      return;
+    }
 
     setUploading(true);
     try {
@@ -424,7 +477,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         },
         imageUrls,
         newEvent.shifts,
-        newEvent.products
+        newEvent.product_categories
       );
       setMessage({ type: 'success', text: 'Event created successfully!' });
       setActiveTab('dashboard');
@@ -440,6 +493,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         location_name: '',
         location_address: '',
         shifts: [],
+        product_categories: [],
         products: []
       });
       setSelectedFiles([]);
@@ -466,13 +520,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
   const handleDeleteEvent = async (eventId: number) => {
     try {
-      await eventService.deleteEvent(eventId);
-      setMessage({ type: 'success', text: 'Event and all related data deleted successfully.' });
+      await eventService.archiveEvent(eventId);
+      setMessage({ type: 'success', text: 'Event archived successfully.' });
       setDeletingEvent(null);
       fetchEvents();
     } catch (error: any) {
-      console.error('Delete error:', error);
-      setMessage({ type: 'error', text: error.message || 'Failed to delete event' });
+      console.error('Archive error:', error);
+      setMessage({ type: 'error', text: error.message || 'Failed to archive event' });
     }
   };
 
@@ -513,7 +567,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         for (const e of updatedEvents) {
           const s = e.shifts.find((sh: any) => sh.id === viewingParticipantsShift.id);
           if (s) {
-            setViewingParticipantsShift(s);
+            setViewingParticipantsShift({ ...s, eventTitle: e.title });
             break;
           }
         }
@@ -540,7 +594,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         for (const e of updatedEvents) {
           const s = e.shifts.find((sh: any) => sh.id === viewingParticipantsShift.id);
           if (s) {
-            setViewingParticipantsShift(s);
+            setViewingParticipantsShift({ ...s, eventTitle: e.title });
             break;
           }
         }
@@ -582,19 +636,155 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddCategoryToNewEvent = () => {
+    const normalizedName = tempProductCategoryName.trim();
+    if (!normalizedName) {
+      setMessage({ type: 'error', text: 'Category name is required.' });
+      return;
+    }
+
+    setNewEvent(prev => ({
+      ...prev,
+      product_categories: [
+        ...prev.product_categories,
+        {
+          id: createTempCategoryId(),
+          name: normalizedName,
+          products: []
+        }
+      ]
+    }));
+    setTempProductCategoryName('');
+  };
+
+  const handleDeleteCategoryFromNewEvent = (categoryId: string | number) => {
+    setNewEvent(prev => ({
+      ...prev,
+      product_categories: prev.product_categories.filter((category: any) => String(category.id) !== String(categoryId))
+    }));
+
+    if (tempProduct.category_id === String(categoryId)) {
+      setTempProduct(createEmptyProductDraft());
+    }
+  };
+
+  const handleAddProductToNewEvent = () => {
+    const normalizedTitle = tempProduct.title.trim();
+    if (!tempProduct.category_id || !normalizedTitle) {
+      setMessage({ type: 'error', text: 'Choose a category and product title first.' });
+      return;
+    }
+
+    setNewEvent(prev => ({
+      ...prev,
+      product_categories: prev.product_categories.map((category: any) => (
+        String(category.id) === tempProduct.category_id
+          ? {
+              ...category,
+              products: [
+                ...(category.products || []),
+                {
+                  id: createTempProductId(),
+                  title: normalizedTitle,
+                  description: tempProduct.description.trim(),
+                  price: tempProduct.price,
+                  image_url: tempProduct.image_url || null,
+                  category_id: tempProduct.category_id,
+                }
+              ]
+            }
+          : category
+      ))
+    }));
+    setTempProduct(createEmptyProductDraft());
+  };
+
+  const handleDeleteProductFromNewEvent = (categoryId: string | number, productId: string) => {
+    setNewEvent(prev => ({
+      ...prev,
+      product_categories: prev.product_categories.map((category: any) => (
+        String(category.id) === String(categoryId)
+          ? {
+              ...category,
+              products: (category.products || []).filter((product: any) => String(product.id) !== String(productId))
+            }
+          : category
+      ))
+    }));
+  };
+
+  const handleAddProductCategory = async () => {
     if (!editingEvent) return;
+
+    const normalizedName = newProductCategoryName.trim();
+    if (!normalizedName) {
+      setMessage({ type: 'error', text: 'Category name is required.' });
+      return;
+    }
+
     try {
-      await eventService.addProduct(editingEvent.id, newProduct);
-      setNewProduct({ title: '', description: '', price: 0, image_url: '' });
-      setMessage({ type: 'success', text: 'Product added!' });
-      setIsAddingProduct(false);
+      await eventService.addProductCategory(editingEvent.id, { name: normalizedName });
+      setNewProductCategoryName('');
+      setMessage({ type: 'success', text: 'Category added!' });
       fetchEvents();
       const updated = await eventService.getEventBySlug(editingEvent.slug);
       setEditingEvent(updated);
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handleDeleteProductCategory = async (categoryId: string | number, categoryName: string) => {
+    if (!window.confirm(`Delete category "${categoryName}" and all products inside it?`)) {
+      return;
+    }
+
+    try {
+      await eventService.deleteProductCategory(categoryId);
+      setMessage({ type: 'success', text: 'Category deleted!' });
+      fetchEvents();
+      if (editingEvent) {
+        const updated = await eventService.getEventBySlug(editingEvent.slug);
+        setEditingEvent(updated);
+      }
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handleAddProduct = async () => {
+    if (!editingEvent) return;
+    if (!newProduct.category_id || !newProduct.title.trim()) {
+      setMessage({ type: 'error', text: 'Choose a category and product title first.' });
+      return;
+    }
+
+    try {
+      await eventService.addProduct(newProduct.category_id, {
+        ...newProduct,
+        title: newProduct.title.trim(),
+        description: newProduct.description.trim(),
+      });
+      setNewProduct(createEmptyProductDraft());
+      setMessage({ type: 'success', text: 'Product added!' });
+      fetchEvents();
+      const updated = await eventService.getEventBySlug(editingEvent.slug);
+      setEditingEvent(updated);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handleTempProductImageUpload = async (file: File) => {
+    try {
+      setUploading(true);
+      const url = await eventService.uploadProductImage(file);
+      setTempProduct(prev => ({ ...prev, image_url: url }));
+      setMessage({ type: 'success', text: 'Product image uploaded!' });
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -630,10 +820,11 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    console.log('Attempting to delete product:', productId);
+    if (!window.confirm('Delete this product?')) {
+      return;
+    }
     try {
       await eventService.deleteProduct(productId);
-      console.log('Product deleted successfully');
       setMessage({ type: 'success', text: 'Product deleted!' });
       setDeletingProduct(null);
       fetchEvents();
@@ -642,17 +833,14 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         setEditingEvent(updated);
       }
     } catch (error: any) {
-      console.error('Error deleting product:', error);
       setMessage({ type: 'error', text: error.message });
     }
   };
 
   const handleDeleteShift = async (shiftId: number) => {
-    console.log('Attempting to delete shift:', shiftId);
     try {
-      await eventService.deleteShift(shiftId);
-      console.log('Shift deleted successfully');
-      setMessage({ type: 'success', text: 'Shift deleted!' });
+      await eventService.archiveShift(shiftId);
+      setMessage({ type: 'success', text: 'Shift archived!' });
       setDeletingShift(null);
       fetchEvents();
       if (editingEvent) {
@@ -660,10 +848,28 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         setEditingEvent(updated);
       }
     } catch (error: any) {
-      console.error('Error deleting shift:', error);
+      console.error('Error archiving shift:', error);
       setMessage({ type: 'error', text: error.message });
     }
   };
+
+  const openArchivedEvent = (event: any, shiftId?: number) => {
+    setViewingArchivedEvent(event);
+    setHighlightedArchivedShiftId(shiftId ?? null);
+  };
+
+  const openParticipantsShift = (shift: any, eventTitle?: string) => {
+    setViewingParticipantsShift({ ...shift, eventTitle: eventTitle ?? shift.eventTitle });
+    setSelectedBookings([]);
+  };
+
+  const activeEvents = events.filter((event) => !isArchivedStatus(event.status));
+  const archivedEvents = events.filter((event) => isArchivedStatus(event.status));
+  const archivedShifts = events.flatMap((event) =>
+    (event.shifts || [])
+      .filter((shift: any) => isArchivedStatus(shift.status))
+      .map((shift: any) => ({ ...shift, eventTitle: event.title, eventId: event.id }))
+  );
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-brand-gold"></div></div>;
 
@@ -742,8 +948,8 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               onClick={() => setActiveTab('add')}
               className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'add' ? 'bg-brand-bg text-brand-gold font-bold shadow-sm' : 'text-brand-text/60 hover:bg-brand-bg'}`}
             >
-              <Plus className="w-5 h-5" />
-              <span className="text-sm">Add Event</span>
+              <PlusCircle className="w-5 h-5" />
+              <span className="text-sm">Create Event</span>
             </button>
             <button
               onClick={() => setActiveTab('private_events')}
@@ -797,7 +1003,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         <main className="flex-1 p-6 md:p-12 overflow-y-auto">
           {activeTab === 'archive' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Canceled Events */}
+              {/* Archived Events */}
               <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-3 bg-red-50 rounded-2xl text-red-600">
@@ -805,32 +1011,45 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">Archived Events</h2>
-                    <p className="text-sm text-slate-500">Events that have been canceled</p>
+                    <p className="text-sm text-slate-500">Events that have been archived</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  {events.filter(e => e.status === 'canceled').length === 0 ? (
+                  {archivedEvents.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-2xl">
                       <p className="text-slate-400 font-medium">No archived events</p>
                     </div>
                   ) : (
-                    events.filter(e => e.status === 'canceled').map(event => (
-                      <div key={event.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <h3 className="font-bold text-slate-900">{event.title}</h3>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Original Date: {formatSafeDate(event.event_date)}
-                        </p>
-                        <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-red-600 bg-red-50 px-2 py-1 rounded inline-block">
-                          Canceled
+                    archivedEvents.map(event => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        onClick={() => openArchivedEvent(event)}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border border-slate-100 text-left transition-all hover:border-slate-200 hover:bg-white hover:shadow-sm"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h3 className="font-bold text-slate-900">{event.title}</h3>
+                            <p className="text-xs text-slate-500 mt-1">
+                              Original Date: {formatSafeDate(event.event_date)}
+                            </p>
+                          </div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-red-600 bg-red-50 px-2 py-1 rounded inline-block">
+                            Archived
+                          </div>
                         </div>
-                      </div>
+                        <div className="mt-4 flex items-center justify-between text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                          <span>{event.shifts?.filter((shift: any) => isArchivedStatus(shift.status)).length || 0} archived shifts</span>
+                          <span className="text-brand-gold">View Details</span>
+                        </div>
+                      </button>
                     ))
                   )}
                 </div>
               </div>
 
-              {/* Canceled Shifts */}
+              {/* Archived Shifts */}
               <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-slate-100">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-3 bg-orange-50 rounded-2xl text-orange-600">
@@ -838,32 +1057,52 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">Archived Shifts</h2>
-                    <p className="text-sm text-slate-500">Individual shifts that were canceled</p>
+                    <p className="text-sm text-slate-500">Individual shifts that were archived</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  {(() => {
-                    const canceledShifts = events.flatMap(e => (e.shifts || []).filter((s: any) => s.status === 'canceled').map((s: any) => ({ ...s, eventTitle: e.title })));
-                    if (canceledShifts.length === 0) {
-                      return (
-                        <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-2xl">
-                          <p className="text-slate-400 font-medium">No archived shifts</p>
-                        </div>
-                      );
-                    }
-                    return canceledShifts.map(shift => (
+                  {archivedShifts.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-2xl">
+                      <p className="text-slate-400 font-medium">No archived shifts</p>
+                    </div>
+                  ) : (
+                    archivedShifts.map(shift => (
                       <div key={shift.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                         <h3 className="font-bold text-slate-900">{shift.eventTitle}</h3>
                         <p className="text-xs text-slate-500 mt-1">
                           {formatSafeDate(shift.start_time)} @ {formatSafeTime(shift.start_time)}
                         </p>
+                        <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                          {getShiftBookingCount(shift)} booked
+                        </p>
                         <div className="mt-2 text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-1 rounded inline-block">
-                          Canceled
+                          Archived
+                        </div>
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const parentEvent = events.find((event) => event.id === shift.eventId);
+                              if (parentEvent) {
+                                openArchivedEvent(parentEvent, shift.id);
+                              }
+                            }}
+                            className="flex-1 px-4 py-2 bg-brand-text/5 text-brand-text text-[9px] uppercase font-bold tracking-widest rounded-lg hover:bg-brand-text hover:text-white transition-all"
+                          >
+                            View Event
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openParticipantsShift(shift, shift.eventTitle)}
+                            className="flex-1 px-4 py-2 bg-brand-gold/10 text-brand-gold text-[9px] uppercase font-bold tracking-widest rounded-lg hover:bg-brand-gold hover:text-white transition-all"
+                          >
+                            Participants
+                          </button>
                         </div>
                       </div>
-                    ));
-                  })()}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -871,15 +1110,22 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
           {activeTab === 'dashboard' ? (
             <div className="space-y-10">
-              <header className="flex justify-between items-end">
+              <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <h1 className="text-4xl font-bold serif-font">Event Dashboard</h1>
                   <p className="text-brand-text/40 text-xs uppercase tracking-widest font-bold mt-2">Manage your collection</p>
                 </div>
+                <button
+                  onClick={() => setActiveTab('add')}
+                  className="flex items-center gap-2 rounded-2xl bg-brand-text px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-brand-bg transition-all hover:bg-brand-gold shadow-lg"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add New Event
+                </button>
               </header>
 
               <div className="grid gap-6">
-                {events.map((event) => (
+                {activeEvents.map((event) => (
                   <motion.div
                     layout
                     key={event.id}
@@ -930,17 +1176,18 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                             e.stopPropagation();
                             setDeletingEvent(event);
                           }}
-                          className="p-3 bg-red-50 text-red-500 rounded-xl hover:bg-red-500 hover:text-white transition-all"
-                          title="Delete Event"
+                          className="flex items-center gap-2 px-4 py-3 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-500 hover:text-white transition-all font-bold text-[10px] uppercase tracking-widest"
+                          title="Archive Event"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Archive className="w-4 h-4" />
+                          Archive
                         </button>
                       </div>
                     </div>
 
                     {/* Shift Stats */}
                     <div className="mt-8 pt-8 border-t border-brand-border grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {event.shifts?.map((shift: any) => {
+                      {getActiveShifts(event.shifts).map((shift: any) => {
                         // Sum the number_of_people from all bookings for this specific shift
                         const totalPeople = shift.bookings?.reduce((sum: number, b: any) => sum + (b.number_of_people || 0), 0) || 0;
 
@@ -952,14 +1199,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                             </div>
                             <div className="flex items-baseline gap-1">
                               <span className="text-lg font-bold">{totalPeople}</span>
-                              <span className="text-[10px] uppercase tracking-widest opacity-40 font-bold ml-1">People</span>
+                              <span className="text-[10px] uppercase tracking-widest opacity-40 font-bold ml-1">Limit Counter</span>
                               <span className="text-[10px] uppercase tracking-widest opacity-40 font-bold ml-2">({shift.people_counter || 0} trigger)</span>
                             </div>
                             <div className="flex gap-2 mt-4">
                               <button
                                 onClick={() => {
-                                  setViewingParticipantsShift(shift);
-                                  setSelectedBookings([]);
+                                  openParticipantsShift(shift, event.title);
                                 }}
                                 className="flex-1 py-2 bg-brand-text/5 hover:bg-brand-gold hover:text-white text-[9px] uppercase font-bold tracking-widest rounded-lg transition-all flex items-center justify-center gap-2"
                               >
@@ -1018,8 +1264,9 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                       <input
                         type="number"
                         min="0"
-                        value={newEvent.price}
-                        onChange={(e) => setNewEvent({ ...newEvent, price: Number(e.target.value) })}
+                        value={newEvent.price || ''}
+                        onChange={(e) => setNewEvent({ ...newEvent, price: e.target.value === '' ? 0 : Number(e.target.value) })}
+                        onFocus={(e) => e.target.select()}
                         className="w-full px-6 py-4 rounded-2xl border border-brand-border focus:border-brand-gold outline-none transition-all"
                         required
                       />
@@ -1160,12 +1407,15 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
                 <div>
                   <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-4">Initial Shifts</label>
+                  <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-brand-text/40">
+                    At least one shift is required before you can create the event.
+                  </p>
                   <div className="space-y-4">
                     {newEvent.shifts.map((s, i) => (
                       <div key={i} className="flex items-center justify-between p-4 bg-brand-bg/30 rounded-xl border border-brand-border">
                         <div className="text-[10px] font-bold">
                           {formatSafeTime(s.start_time)} - {formatSafeTime(s.end_time)}
-                          <span className="ml-4 opacity-40">Cap: {s.capacity}</span>
+                          <span className="ml-4 opacity-40">Limit Counter: {s.people_counter}</span>
                         </div>
                         <button
                           type="button"
@@ -1189,12 +1439,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                       </div>
                       <div className="flex gap-2 items-end">
                         <div className="w-24">
-                          <label className="block text-[9px] uppercase font-bold mb-1 opacity-40">People</label>
+                          <label className="block text-[9px] uppercase font-bold mb-1 opacity-40">Limit Counter</label>
                           <input
                             type="number"
                             min="0"
-                            value={tempShift.people_counter}
-                            onChange={(e) => setTempShift({ ...tempShift, people_counter: Number(e.target.value) })}
+                            value={tempShift.people_counter || ''}
+                            onChange={(e) => setTempShift({ ...tempShift, people_counter: e.target.value === '' ? 0 : Number(e.target.value) })}
+                            onFocus={(e) => e.target.select()}
                             className="w-full px-4 py-2 rounded-lg border border-brand-border text-xs"
                           />
                         </div>
@@ -1224,6 +1475,24 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                   </div>
                 </div>
 
+                <ProductCategoryManager
+                  heading="Product Categories"
+                  categories={newEvent.product_categories}
+                  emptyMessage="No product categories yet. Add one if this event needs category-based options."
+                  categoryDraftName={tempProductCategoryName}
+                  onCategoryDraftChange={setTempProductCategoryName}
+                  onAddCategory={handleAddCategoryToNewEvent}
+                  productDraft={tempProduct}
+                  onProductDraftChange={(changes) => setTempProduct(prev => ({ ...prev, ...changes }))}
+                  onAddProduct={handleAddProductToNewEvent}
+                  onProductImageUpload={handleTempProductImageUpload}
+                  onDeleteCategory={(category) => handleDeleteCategoryFromNewEvent(category.id)}
+                  onDeleteProduct={(product, category) => handleDeleteProductFromNewEvent(category.id, String(product.id))}
+                  addCategoryLabel="Add Category"
+                  addProductLabel="Add Product To Category"
+                />
+
+                {false && (
                 <div>
                   <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-4">Add-on Products</label>
                   <div className="space-y-4">
@@ -1260,8 +1529,9 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                         <input
                           type="number"
                           min="0"
-                          value={tempProduct.price}
-                          onChange={(e) => setTempProduct({ ...tempProduct, price: Number(e.target.value) })}
+                          value={tempProduct.price || ''}
+                          onChange={(e) => setTempProduct({ ...tempProduct, price: e.target.value === '' ? 0 : Number(e.target.value) })}
+                          onFocus={(e) => e.target.select()}
                           className="w-full px-4 py-2 rounded-lg border border-brand-border text-xs"
                         />
                       </div>
@@ -1293,11 +1563,12 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                     </div>
                   </div>
                 </div>
+                )}
 
                 <button
                   type="submit"
-                  className="w-full py-6 bg-brand-text text-brand-bg rounded-2xl font-bold uppercase tracking-[0.3em] text-xs hover:bg-brand-gold transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={!newEvent.title || !newEvent.slug || newEvent.price <= 0 || uploading}
+                  className="w-full py-6 bg-brand-text text-brand-bg rounded-2xl font-bold uppercase tracking-[0.3em] text-xs hover:bg-brand-gold transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={!newEvent.title || !newEvent.slug || newEvent.price <= 0 || newEvent.shifts.length === 0 || uploading}
                 >
                   {uploading ? 'Uploading Images...' : 'Finalize & Create Event'}
                 </button>
@@ -1741,9 +2012,9 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                 )}
               </AnimatePresence>
             </div>
-          ) : (
+          ) : activeTab === 'email_templates' ? (
             <EmailTemplates setMessage={setMessage} />
-          )}
+          ) : null}
         </main>
       </div>
 
@@ -1802,6 +2073,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                           type="number"
                           defaultValue={editingEvent.price}
                           onBlur={(e) => handleUpdateEvent(editingEvent.id, { price: Number(e.target.value) })}
+                          onFocus={(e) => e.target.select()}
                           className="w-full px-6 py-4 rounded-2xl border border-brand-border outline-none focus:border-brand-gold"
                         />
                       </div>
@@ -1898,6 +2170,22 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                 </section>
 
                 {/* Shift Management */}
+                <ProductCategoryManager
+                  heading="Product Categories"
+                  categories={editingEvent.product_categories || []}
+                  emptyMessage="No product categories attached to this event yet."
+                  categoryDraftName={newProductCategoryName}
+                  onCategoryDraftChange={setNewProductCategoryName}
+                  onAddCategory={handleAddProductCategory}
+                  productDraft={newProduct}
+                  onProductDraftChange={(changes) => setNewProduct(prev => ({ ...prev, ...changes }))}
+                  onAddProduct={handleAddProduct}
+                  onProductImageUpload={handleProductImageUpload}
+                  onDeleteCategory={(category) => handleDeleteProductCategory(category.id, category.name)}
+                  onDeleteProduct={(product) => handleDeleteProduct(String(product.id))}
+                  addCategoryLabel="Add Category"
+                  addProductLabel="Add Product To Category"
+                />
                 <section className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Experience Shifts</h3>
@@ -1910,7 +2198,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                   </div>
 
                   <div className="grid gap-4">
-                    {editingEvent.shifts?.map((shift: any) => {
+                    {getActiveShifts(editingEvent.shifts).map((shift: any) => {
                       const totalPeople = shift.bookings?.reduce((sum: number, b: any) => sum + (b.number_of_people || 0), 0) || 0;
 
                       return (
@@ -1931,17 +2219,17 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                                   min="0"
                                   defaultValue={shift.people_counter || 0}
                                   onBlur={(e) => handleUpdateShift(shift.id, { people_counter: Number(e.target.value) })}
+                                  onFocus={(e) => e.target.select()}
                                   className="w-16 px-2 py-1 text-xs font-bold bg-white border border-brand-border rounded-lg outline-none focus:border-brand-gold"
                                 />
-                                <span className="text-[10px] uppercase tracking-widest font-bold text-brand-text/40">People (trigger)</span>
+                                <span className="text-[10px] uppercase tracking-widest font-bold text-brand-text/40">Limit Counter (trigger)</span>
                               </div>
                             </div>
                           </div>
                           <div className="flex items-center gap-4">
                             <button
                               onClick={() => {
-                                setViewingParticipantsShift(shift);
-                                setSelectedBookings([]);
+                                openParticipantsShift(shift, editingEvent.title);
                               }}
                               className="px-4 py-2 bg-brand-gold/10 text-brand-gold text-[9px] uppercase font-bold tracking-widest rounded-lg hover:bg-brand-gold hover:text-white transition-all"
                             >
@@ -1952,13 +2240,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                             </span>
                             <button
                               onClick={() => {
-                                console.log('Delete shift clicked, setting deletingShift:', shift);
                                 setDeletingShift(shift);
                               }}
-                              className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"
-                              title="Delete Shift"
+                              className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-500 hover:text-white transition-all text-[9px] uppercase font-bold tracking-widest"
+                              title="Archive Shift"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Archive className="w-3.5 h-3.5" />
+                              Archive
                             </button>
                           </div>
                         </div>
@@ -1971,62 +2259,38 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       onSubmit={handleAddShift}
-                      className="p-8 bg-white border-2 border-dashed border-brand-gold/30 rounded-3xl space-y-6"
+                      className="p-8 border-2 border-dashed border-brand-gold bg-brand-gold/5 rounded-[32px] space-y-6"
                     >
-                      <div className="grid md:grid-cols-3 gap-6">
-                        <div>
-                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Date</label>
-                          <input
-                            type="date"
-                            value={newShift.start_time.split('T')[0]}
-                            onChange={(e) => {
-                              if (!e.target.value) return;
-                              const time = newShift.start_time.split('T')[1] || '09:00';
-                              setNewShift({ ...newShift, start_time: `${e.target.value}T${time}` });
-                            }}
-                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
-                            required
-                          />
-                        </div>
+                      <div className="grid sm:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Start Time</label>
                           <input
-                            type="time"
-                            value={newShift.start_time.split('T')[1]?.slice(0, 5) || '09:00'}
-                            onChange={(e) => {
-                              if (!e.target.value) return;
-                              const date = newShift.start_time.split('T')[0] || new Date().toISOString().split('T')[0];
-                              setNewShift({ ...newShift, start_time: `${date}T${e.target.value}` });
-                            }}
-                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
+                            type="datetime-local"
                             required
+                            value={newShift.start_time}
+                            onChange={(e) => setNewShift({ ...newShift, start_time: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
                           />
                         </div>
                         <div>
                           <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">End Time</label>
                           <input
-                            type="time"
-                            value={newShift.end_time.split('T')[1]?.slice(0, 5) || '17:00'}
-                            onChange={(e) => {
-                              if (!e.target.value) return;
-                              const date = newShift.start_time.split('T')[0] || new Date().toISOString().split('T')[0];
-                              setNewShift({ ...newShift, end_time: `${date}T${e.target.value}` });
-                            }}
-                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
+                            type="datetime-local"
                             required
+                            value={newShift.end_time}
+                            onChange={(e) => setNewShift({ ...newShift, end_time: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
                           />
                         </div>
-                      </div>
-                      <div className="grid md:grid-cols-1 gap-6">
                         <div>
-                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Capacity (Trigger)</label>
+                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Limit Counter (trigger)</label>
                           <input
                             type="number"
-                            min="0"
-                            value={newShift.people_counter}
-                            onChange={(e) => setNewShift({ ...newShift, people_counter: Number(e.target.value) })}
-                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
                             required
+                            value={newShift.people_counter || ''}
+                            onChange={(e) => setNewShift({ ...newShift, people_counter: e.target.value === '' ? 0 : Number(e.target.value) })}
+                            onFocus={(e) => e.target.select()}
+                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
                           />
                         </div>
                       </div>
@@ -2039,6 +2303,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                 </section>
 
                 {/* Product Management */}
+                {false && (
                 <section className="space-y-6">
                   <div className="flex justify-between items-center">
                     <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Add-on Products</h3>
@@ -2050,80 +2315,24 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                     </button>
                   </div>
 
-                  <div className="grid gap-4">
-                    {editingEvent.products?.map((product: any) => (
-                      <div key={product.id} className="flex items-center justify-between p-6 bg-brand-bg/30 rounded-2xl border border-brand-border">
-                        <div className="flex-1 grid md:grid-cols-4 gap-6">
-                          <div className="flex flex-col gap-2">
-                            <label className="block text-[9px] uppercase font-bold mb-1 opacity-40">Image</label>
-                            <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-white border border-brand-border group">
-                              {product.image_url ? (
-                                <img
-                                  src={product.image_url}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-brand-text/20">
-                                  <Mail className="w-6 h-6" />
-                                </div>
-                              )}
-                              <label className="absolute inset-0 bg-brand-text/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept="image/*"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleProductImageUpload(file, product.id);
-                                  }}
-                                />
-                                <span className="text-[8px] text-white font-bold uppercase tracking-widest">Change</span>
-                              </label>
-                            </div>
-                            {product.image_url && (
-                              <button
-                                onClick={() => handleUpdateProduct(product.id, { image_url: null })}
-                                className="text-[8px] text-red-500 font-bold uppercase tracking-widest hover:underline text-left"
-                              >
-                                Remove Image
-                              </button>
-                            )}
-                          </div>
-                          <div className="md:col-span-2">
-                            <label className="block text-[9px] uppercase font-bold mb-1 opacity-40">Title</label>
-                            <input
-                              type="text"
-                              defaultValue={product.title}
-                              onBlur={(e) => handleUpdateProduct(product.id, { title: e.target.value })}
-                              className="w-full px-4 py-2 text-xs font-bold bg-white border border-brand-border rounded-lg outline-none focus:border-brand-gold"
-                            />
-                            <label className="block text-[9px] uppercase font-bold mt-2 mb-1 opacity-40">Description</label>
-                            <input
-                              type="text"
-                              defaultValue={product.description}
-                              onBlur={(e) => handleUpdateProduct(product.id, { description: e.target.value })}
-                              className="w-full px-4 py-2 text-xs bg-white border border-brand-border rounded-lg outline-none focus:border-brand-gold"
-                            />
-                          </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {(editingEvent.products || []).map((product: any) => (
+                      <div key={product.id} className="p-6 bg-brand-bg/30 rounded-2xl border border-brand-border flex items-start justify-between">
+                        <div className="flex gap-4">
+                          {product.image_url && (
+                            <img src={product.image_url} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                          )}
                           <div>
-                            <label className="block text-[9px] uppercase font-bold mb-1 opacity-40">Price (€)</label>
-                            <input
-                              type="number"
-                              min="0"
-                              defaultValue={product.price}
-                              onBlur={(e) => handleUpdateProduct(product.id, { price: Number(e.target.value) })}
-                              className="w-full px-4 py-2 text-xs font-bold bg-white border border-brand-border rounded-lg outline-none focus:border-brand-gold"
-                            />
-                            <button
-                              onClick={() => setDeletingProduct(product)}
-                              className="mt-4 w-full py-2 bg-red-50 text-red-500 text-[9px] uppercase font-bold tracking-widest rounded-lg hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2"
-                            >
-                              <Trash2 className="w-3 h-3" /> Delete Product
-                            </button>
+                            <h4 className="text-sm font-bold">{product.title}</h4>
+                            <p className="text-[10px] text-brand-text/40 font-bold uppercase mt-1">€{product.price}</p>
                           </div>
                         </div>
+                        <button
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -2133,80 +2342,40 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       onSubmit={handleAddProduct}
-                      className="p-8 bg-white border-2 border-dashed border-brand-gold/30 rounded-3xl space-y-6"
+                      className="p-8 border-2 border-dashed border-brand-gold bg-brand_gold/5 rounded-[32px] space-y-6"
                     >
-                      <div className="grid md:grid-cols-4 gap-6">
-                        <div className="md:col-span-1">
-                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Product Image</label>
-                          <div className="relative aspect-square rounded-2xl border-2 border-dashed border-brand-border flex items-center justify-center overflow-hidden group">
-                            {newProduct.image_url ? (
-                              <>
-                                <img
-                                  src={newProduct.image_url}
-                                  alt=""
-                                  className="w-full h-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => setNewProduct({ ...newProduct, image_url: '' })}
-                                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                </button>
-                              </>
-                            ) : (
-                              <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-brand-bg/50 transition-all">
-                                <input
-                                  type="file"
-                                  className="hidden"
-                                  accept="image/*"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleProductImageUpload(file);
-                                  }}
-                                />
-                                <Plus className="w-6 h-6 text-brand-text/20 mb-2" />
-                                <span className="text-[8px] font-bold uppercase tracking-widest text-brand-text/40">Upload</span>
-                              </label>
-                            )}
-                          </div>
+                      <div className="grid sm:grid-cols-2 gap-6">
+                        <div className="sm:col-span-2">
+                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Product Title</label>
+                          <input
+                            type="text"
+                            required
+                            value={newProduct.title}
+                            onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
+                            placeholder="e.g., Souvenir Photo"
+                          />
                         </div>
-                        <div className="md:col-span-3 space-y-6">
-                          <div className="grid md:grid-cols-2 gap-6">
-                            <div>
-                              <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Product Title</label>
-                              <input
-                                type="text"
-                                value={newProduct.title}
-                                onChange={(e) => setNewProduct({ ...newProduct, title: e.target.value })}
-                                className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
-                                required
-                                placeholder="e.g. T-shirt"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Price (€)</label>
-                              <input
-                                type="number"
-                                min="0"
-                                value={newProduct.price}
-                                onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
-                                className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
-                                required
-                              />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Description</label>
-                            <input
-                              type="text"
-                              value={newProduct.description}
-                              onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                              className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
-                              placeholder="Brief description..."
-                            />
-                          </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Price (€)</label>
+                          <input
+                            type="number"
+                            required
+                            value={newProduct.price || ''}
+                            onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value === '' ? 0 : Number(e.target.value) })}
+                            onFocus={(e) => e.target.select()}
+                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Description</label>
+                          <input
+                            type="text"
+                            value={newProduct.description}
+                            onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                            className="w-full px-4 py-3 rounded-xl border border-brand-border outline-none"
+                            placeholder="Brief description..."
+                          />
                         </div>
                       </div>
                       <div className="flex gap-3">
@@ -2216,6 +2385,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                     </motion.form>
                   )}
                 </section>
+                )}
               </div>
 
               <div className="p-8 border-t border-brand-border bg-brand-bg/10 flex justify-end">
@@ -2224,6 +2394,220 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                   className="px-10 py-4 bg-brand-text text-brand-bg rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-brand-gold transition-all"
                 >
                   Done Editing
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Archived Event Detail Modal */}
+      <AnimatePresence>
+        {viewingArchivedEvent && (
+          <div
+            className="fixed inset-0 z-[105] flex items-center justify-center p-6 bg-brand-text/60 backdrop-blur-md"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) {
+                setViewingArchivedEvent(null);
+                setHighlightedArchivedShiftId(null);
+              }
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white w-full max-w-5xl max-h-[90vh] rounded-[40px] shadow-2xl overflow-hidden flex flex-col"
+            >
+              <div className="p-8 border-b border-brand-border flex justify-between items-center bg-brand-bg/20">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-red-600">
+                    <Archive className="w-3.5 h-3.5" />
+                    Archived Event
+                  </div>
+                  <h2 className="mt-4 text-3xl font-bold serif-font">{viewingArchivedEvent.title}</h2>
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-brand-text/40 mt-2">
+                    {formatSafeDate(viewingArchivedEvent.event_date)} • {viewingArchivedEvent.location_name || 'No location set'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setViewingArchivedEvent(null);
+                    setHighlightedArchivedShiftId(null);
+                  }}
+                  className="p-3 hover:bg-brand-bg rounded-full transition-all"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-10 space-y-10">
+                <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+                  <div className="overflow-hidden rounded-[32px] border border-brand-border bg-brand-bg/20 min-h-[260px]">
+                    {viewingArchivedEvent.cover_image_url ? (
+                      <img
+                        src={viewingArchivedEvent.cover_image_url}
+                        alt={viewingArchivedEvent.title}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full min-h-[260px] flex items-center justify-center text-brand-text/25">
+                        <ImageIcon className="w-12 h-12" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Price</p>
+                      <p className="mt-2 text-2xl font-bold serif-font">€{viewingArchivedEvent.price}</p>
+                    </div>
+                    <div className="rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Booking Deadline</p>
+                      <p className="mt-2 text-sm font-bold">
+                        {formatSafeDate(viewingArchivedEvent.booking_deadline)} {formatSafeTime(viewingArchivedEvent.booking_deadline)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-brand-border bg-brand-bg/20 p-5 sm:col-span-2">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Location</p>
+                      <p className="mt-2 text-sm font-bold">{viewingArchivedEvent.location_name || 'Not set'}</p>
+                      <p className="mt-1 text-sm text-brand-text/60">{viewingArchivedEvent.location_address || 'No address available'}</p>
+                    </div>
+                    <div className="rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Visibility</p>
+                      <p className="mt-2 text-sm font-bold">{viewingArchivedEvent.is_hidden ? 'Hidden' : 'Visible'}</p>
+                    </div>
+                    <div className="rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Sold Out Flag</p>
+                      <p className="mt-2 text-sm font-bold">{viewingArchivedEvent.is_sold_out ? 'On' : 'Off'}</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="grid gap-6 lg:grid-cols-2">
+                  <div className="rounded-[28px] border border-brand-border p-6">
+                    <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Short Description</h3>
+                    <p className="mt-4 text-sm leading-relaxed text-brand-text/80">{viewingArchivedEvent.short_description || 'No short description available.'}</p>
+                  </div>
+                  <div className="rounded-[28px] border border-brand-border p-6">
+                    <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Full Description</h3>
+                    <p className="mt-4 text-sm leading-relaxed text-brand-text/80 whitespace-pre-wrap">{viewingArchivedEvent.full_description || 'No full description available.'}</p>
+                  </div>
+                </section>
+
+                <section className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Shifts</h3>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-brand-text/40">
+                      {(viewingArchivedEvent.shifts || []).length} total shifts
+                    </p>
+                  </div>
+
+                  <div className="grid gap-4">
+                    {(viewingArchivedEvent.shifts || []).length === 0 ? (
+                      <div className="rounded-[28px] border-2 border-dashed border-brand-border p-10 text-center text-brand-text/40">
+                        No shifts for this event.
+                      </div>
+                    ) : (
+                      (viewingArchivedEvent.shifts || []).map((shift: any) => (
+                        <div
+                          key={shift.id}
+                          className={`rounded-[28px] border p-6 transition-all ${highlightedArchivedShiftId === shift.id
+                            ? 'border-brand-gold bg-brand-gold/5 shadow-sm'
+                            : 'border-brand-border bg-brand-bg/20'
+                            }`}
+                        >
+                          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <span className="text-sm font-bold">
+                                  {formatSafeDate(shift.start_time)} @ {formatSafeTime(shift.start_time)}
+                                </span>
+                                <span className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full ${isArchivedStatus(shift.status)
+                                  ? 'bg-orange-100 text-orange-700'
+                                  : 'bg-emerald-100 text-emerald-700'
+                                  }`}>
+                                  {isArchivedStatus(shift.status) ? 'Archived' : (shift.status || 'Active')}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-4 text-[10px] uppercase font-bold tracking-widest text-brand-text/50">
+                                <span>{getShiftBookingCount(shift)} booked</span>
+                                <span>Capacity {shift.capacity ?? 'N/A'}</span>
+                                <span>{shift.is_full ? 'Full' : 'Open'}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setHighlightedArchivedShiftId(shift.id)}
+                                className="px-4 py-3 bg-brand-text/5 text-brand-text text-[9px] uppercase font-bold tracking-widest rounded-xl hover:bg-brand-text hover:text-white transition-all"
+                              >
+                                Focus Shift
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openParticipantsShift(shift, viewingArchivedEvent.title)}
+                                className="px-4 py-3 bg-brand-gold/10 text-brand-gold text-[9px] uppercase font-bold tracking-widest rounded-xl hover:bg-brand-gold hover:text-white transition-all"
+                              >
+                                See Participants
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </section>
+
+                <ProductCategoryManager
+                  heading="Product Categories"
+                  categories={viewingArchivedEvent.product_categories || []}
+                  emptyMessage="No product categories attached to this event."
+                  readOnly
+                />
+
+                {false && (
+                <section className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Products</h3>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-brand-text/40">
+                      {(viewingArchivedEvent.products || []).length} total products
+                    </p>
+                  </div>
+
+                  {(viewingArchivedEvent.products || []).length === 0 ? (
+                    <div className="rounded-[28px] border-2 border-dashed border-brand-border p-10 text-center text-brand-text/40">
+                      No products attached to this event.
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {(viewingArchivedEvent.products || []).map((product: any) => (
+                        <div key={product.id} className="rounded-[24px] border border-brand-border bg-brand-bg/20 p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <h4 className="text-sm font-bold">{product.title}</h4>
+                              <p className="mt-2 text-sm text-brand-text/70">{product.description || 'No description'}</p>
+                            </div>
+                            <div className="text-sm font-bold text-brand-gold">€{product.price}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+                )}
+              </div>
+
+              <div className="p-8 border-t border-brand-border bg-brand-bg/10 flex justify-end">
+                <button
+                  onClick={() => {
+                    setViewingArchivedEvent(null);
+                    setHighlightedArchivedShiftId(null);
+                  }}
+                  className="px-10 py-4 bg-brand-text text-brand-bg rounded-2xl font-bold uppercase tracking-widest text-[10px] hover:bg-brand-gold transition-all"
+                >
+                  Close
                 </button>
               </div>
             </motion.div>
@@ -2249,6 +2633,9 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               <div className="p-8 border-b border-brand-border flex justify-between items-center bg-brand-bg/20">
                 <div>
                   <h2 className="text-3xl font-bold serif-font">Shift Participants</h2>
+                  {viewingParticipantsShift.eventTitle && (
+                    <p className="text-sm font-bold text-brand-text/70 mt-2">{viewingParticipantsShift.eventTitle}</p>
+                  )}
                   <p className="text-[10px] uppercase tracking-widest font-bold text-brand-text/40 mt-1">
                     {new Date(viewingParticipantsShift.start_time).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                   </p>
@@ -2374,7 +2761,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
+      {/* Archive Event Modal */}
       <AnimatePresence>
         {deletingEvent && (
           <div
@@ -2389,26 +2776,26 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white w-full max-w-md rounded-[32px] shadow-2xl p-10 text-center"
             >
-              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Trash2 className="w-10 h-10" />
+              <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Archive className="w-10 h-10" />
               </div>
-              <h2 className="text-2xl font-bold serif-font mb-4">Delete Event?</h2>
+              <h2 className="text-2xl font-bold serif-font mb-4">Archive Event?</h2>
               <p className="text-brand-text/60 text-sm mb-8">
-                Are you sure you want to delete <span className="font-bold text-brand-text">"{deletingEvent.title}"</span>?
-                This action is permanent and will delete all related images, shifts, and bookings.
+                Archive <span className="font-bold text-brand-text">"{deletingEvent.title}"</span> and move it to the Archive tab?
+                This keeps the existing data but removes the event and its shifts from active listings.
               </p>
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => handleDeleteEvent(deletingEvent.id)}
-                  className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-red-600 transition-all shadow-lg"
+                  className="w-full py-4 bg-amber-500 text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-amber-600 transition-all shadow-lg"
                 >
-                  Yes, Delete Everything
+                  Yes, Archive Event
                 </button>
                 <button
                   onClick={() => setDeletingEvent(null)}
                   className="w-full py-4 bg-brand-bg text-brand-text/60 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-brand-text hover:text-white transition-all"
                 >
-                  No, Keep It
+                  Cancel
                 </button>
               </div>
             </motion.div>
@@ -2416,7 +2803,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         )}
       </AnimatePresence>
 
-      {/* Delete Shift Modal */}
+      {/* Archive Shift Modal */}
       <AnimatePresence>
         {deletingShift && (
           <div
@@ -2431,26 +2818,26 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               exit={{ opacity: 0, scale: 0.95 }}
               className="bg-white w-full max-w-md rounded-[32px] shadow-2xl p-10 text-center"
             >
-              <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Trash2 className="w-10 h-10" />
+              <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Archive className="w-10 h-10" />
               </div>
-              <h2 className="text-2xl font-bold serif-font mb-4">Delete Shift?</h2>
+              <h2 className="text-2xl font-bold serif-font mb-4">Archive Shift?</h2>
               <p className="text-brand-text/60 text-sm mb-8">
-                Are you sure you want to delete this shift?
-                <span className="font-bold text-brand-text block mt-2">This will also delete all bookings for this shift!</span>
+                Archive this shift and move it to the Archive tab?
+                <span className="font-bold text-brand-text block mt-2">Existing bookings stay saved, but this shift will stop appearing in active booking flows.</span>
               </p>
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => handleDeleteShift(deletingShift.id)}
-                  className="w-full py-4 bg-red-500 text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-red-600 transition-all shadow-lg"
+                  className="w-full py-4 bg-amber-500 text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-amber-600 transition-all shadow-lg"
                 >
-                  Yes, Delete Shift
+                  Yes, Archive Shift
                 </button>
                 <button
                   onClick={() => setDeletingShift(null)}
                   className="w-full py-4 bg-brand-bg text-brand-text/60 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-brand-text hover:text-white transition-all"
                 >
-                  No, Keep It
+                  Cancel
                 </button>
               </div>
             </motion.div>

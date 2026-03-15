@@ -12,6 +12,21 @@ const getAuthHeaders = async (contentType = true) => {
   return headers;
 };
 
+const getBrowserEmailLanguage = (): 'el' | 'en' => {
+  if (typeof window === 'undefined') {
+    return 'en';
+  }
+
+  // First check if user manually selected a language on our site
+  const savedLang = localStorage.getItem('site_language');
+  if (savedLang === 'gr' || savedLang === 'el') return 'el';
+  if (savedLang === 'en') return 'en';
+
+  // Fallback to browser language
+  const browserLanguage = navigator.language.toLowerCase();
+  return browserLanguage.startsWith('el') || browserLanguage.startsWith('gr') ? 'el' : 'en';
+};
+
 export const eventService = {
   async getEvents() {
     const response = await fetch(buildApiUrl('/api/events'));
@@ -41,7 +56,13 @@ export const eventService = {
     const response = await fetch(buildApiUrl('/api/bookings'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ eventId, formData })
+      body: JSON.stringify({
+        eventId,
+        formData: {
+          ...formData,
+          email_language: getBrowserEmailLanguage()
+        }
+      })
     });
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, 'Failed to create booking'));
@@ -105,12 +126,12 @@ export const eventService = {
     return data.publicUrl;
   },
 
-  async createEvent(eventData: Partial<WeekploreEvent>, imageUrls: string[], shifts: any[] = [], products: any[] = []) {
+  async createEvent(eventData: Partial<WeekploreEvent>, imageUrls: string[], shifts: any[] = [], productCategories: any[] = []) {
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl('/api/admin/events'), {
       method: 'POST',
       headers,
-      body: JSON.stringify({ eventData, imageUrls, shifts, products })
+      body: JSON.stringify({ eventData, imageUrls, shifts, productCategories })
     });
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, 'Failed to create event'));
@@ -131,14 +152,14 @@ export const eventService = {
     return await response.json();
   },
 
-  async deleteEvent(eventId: number) {
+  async archiveEvent(eventId: number) {
     const headers = await getAuthHeaders(false);
     const response = await fetch(buildApiUrl(`/api/admin/events/${eventId}`), {
       method: 'DELETE',
       headers
     });
     if (!response.ok) {
-      throw new Error(await getErrorMessage(response, 'Failed to delete event'));
+      throw new Error(await getErrorMessage(response, 'Failed to archive event'));
     }
     return await response.json();
   },
@@ -249,27 +270,65 @@ export const eventService = {
     return await response.json();
   },
 
-  async deleteShift(shiftId: number) {
+  async archiveShift(shiftId: number) {
     const headers = await getAuthHeaders(false);
     const response = await fetch(buildApiUrl(`/api/admin/shifts/${shiftId}`), {
       method: 'DELETE',
       headers
     });
     if (!response.ok) {
-      throw new Error(await getErrorMessage(response, 'Failed to delete shift'));
+      throw new Error(await getErrorMessage(response, 'Failed to archive shift'));
     }
     return await response.json();
   },
 
-  async addProduct(eventId: number, productData: any) {
+  async addProduct(categoryId: number | string, productData: any) {
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl('/api/admin/products'), {
       method: 'POST',
       headers,
-      body: JSON.stringify({ ...productData, event_id: eventId })
+      body: JSON.stringify({ ...productData, category_id: categoryId })
     });
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, 'Failed to add product'));
+    }
+    return await response.json();
+  },
+
+  async addProductCategory(eventId: number, categoryData: any) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl('/api/admin/product-categories'), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...categoryData, event_id: eventId })
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to add product category'));
+    }
+    return await response.json();
+  },
+
+  async updateProductCategory(categoryId: number | string, categoryData: any) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl(`/api/admin/product-categories/${categoryId}`), {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(categoryData)
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to update product category'));
+    }
+    return await response.json();
+  },
+
+  async deleteProductCategory(categoryId: number | string) {
+    const headers = await getAuthHeaders(false);
+    const response = await fetch(buildApiUrl(`/api/admin/product-categories/${categoryId}`), {
+      method: 'DELETE',
+      headers
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to delete product category'));
     }
     return await response.json();
   },
@@ -413,7 +472,10 @@ export const eventService = {
     const response = await fetch(buildApiUrl('/api/private-event-inquiries'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(inquiryData)
+      body: JSON.stringify({
+        ...inquiryData,
+        email_language: getBrowserEmailLanguage()
+      })
     });
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, 'Failed to submit inquiry'));

@@ -11,7 +11,10 @@ interface EventCardProps {
 
 const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
   const { language, t } = useLanguage();
-  const availableShifts = event.shifts?.filter(s => !s.is_full && s.booked_spots < s.capacity) || [];
+  const bookableShifts = event.shifts?.filter(
+    s => s.is_active !== false && s.status !== 'canceled' && s.status !== 'cancelled' && s.status !== 'archived'
+  ) || [];
+  const availableShifts = bookableShifts.filter(s => !s.is_full && s.booked_spots < s.capacity);
   const isSoldOut = event.is_sold_out || availableShifts.length === 0;
   
   const locale = language === 'gr' ? 'el-GR' : 'en-US';
@@ -74,7 +77,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
         <div className="mb-6 sm:mb-8">
           <p className="text-[10px] uppercase font-bold tracking-[0.2em] text-brand-text/40 mb-4">{t('common.availableShifts', { stripAccents: true })}</p>
           <div className="flex flex-wrap gap-2">
-            {event.shifts?.map(shift => {
+            {bookableShifts.map(shift => {
               const isFull = shift.is_full || shift.booked_spots >= shift.capacity;
               const timeStr = (() => {
                 const start = new Date(shift.start_time);

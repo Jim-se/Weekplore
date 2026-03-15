@@ -91,72 +91,91 @@ const PrivateEventsView: React.FC = () => {
             {/* Lead Cards: Bespoke & Setup */}
             <div className="flex flex-col w-full items-center justify-center gap-10 md:flex-row md:items-stretch lg:gap-14">
               {/* Bespoke / Custom */}
-              <div className="group flex w-full max-w-[400px] flex-col overflow-hidden rounded-[28px] border border-brand-border bg-white shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[40px]">
-                <div className="relative aspect-[16/10] shrink-0 overflow-hidden">
+              <div 
+                className="group relative isolate flex w-full max-w-[500px] flex-col overflow-hidden rounded-[40px] border border-brand-border bg-brand-text shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[60px] min-h-[500px]"
+              >
+                {/* Background Image with Overlay */}
+                <div className="absolute inset-0 z-0">
                   <img
                     src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80"
                     alt="Custom Event"
-                    className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+                    className="h-full w-full object-cover opacity-40 transition-transform duration-[1.5s] group-hover:scale-110"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-text via-brand-text/50 to-transparent"></div>
                 </div>
 
-                <div className="flex flex-grow flex-col p-5 sm:p-6 md:p-8">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-serif font-bold leading-tight text-brand-text transition-colors group-hover:text-brand-terracotta md:text-2xl">
-                      {createYourOwnEntry.name}
+                <div className="relative z-10 flex flex-grow flex-col p-8 sm:p-10 md:p-12">
+                  <div className="mb-auto">
+                    <div className="mb-8 inline-block rounded-full border border-brand-gold/30 bg-brand-gold/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-gold">
+                      • {t('private.bespokeLabel', { defaultValue: 'BESPOKE' })}
+                    </div>
+                    
+                    <h3 className="mb-6 text-4xl font-serif font-bold italic leading-tight text-white transition-colors group-hover:text-brand-gold md:text-5xl">
+                      {createYourOwnEntry.name.split(' ').map((word, i) => (
+                        <span key={i} className={i === 1 ? 'text-brand-gold block mt-2' : ''}>
+                          {word}{' '}
+                        </span>
+                      ))}
                     </h3>
+
+                    <p className="text-base leading-relaxed text-white/70 max-w-sm">
+                      {createYourOwnEntry.description}
+                    </p>
                   </div>
 
-                  <p className="mb-8 text-sm leading-relaxed text-brand-text/60">
-                    {createYourOwnEntry.description}
-                  </p>
-
-                  <div className="mt-auto pt-4">
+                  <div className="mt-12">
                     <button
                       type="button"
                       onClick={() => setSelectedEventForInquiry({
                         eventName: createYourOwnEntry.name,
                         isCustom: true
                       })}
-                      className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full bg-brand-text px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-bg shadow-lg transition-all hover:bg-brand-gold"
+                      className="flex min-h-14 w-full items-center justify-between rounded-full bg-brand-gold px-10 py-5 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-text shadow-xl transition-all hover:bg-white hover:scale-[1.02]"
                     >
-                      {t('private.inquire', { stripAccents: true })} <ArrowRight className="h-4 w-4" />
+                      {t('private.inquire', { stripAccents: true })} 
+                      <ArrowRight className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* Ready Set Up Events Card */}
-              <div className="group flex w-full max-w-[400px] flex-col overflow-hidden rounded-[28px] border border-brand-border bg-white shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[40px]">
-                <div className="relative aspect-[16/10] shrink-0 overflow-hidden">
+              <div 
+                className="group relative isolate flex w-full max-w-[500px] flex-col overflow-hidden rounded-[40px] border border-brand-border bg-brand-text shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[60px] min-h-[500px]"
+              >
+                {/* Background Image with Overlay */}
+                <div className="absolute inset-0 z-0">
                   <img
                     src="https://images.unsplash.com/photo-1505236858219-8359eb29e329?auto=format&fit=crop&q=80"
                     alt="Ready Events"
-                    className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+                    className="h-full w-full object-cover opacity-40 transition-transform duration-[1.5s] group-hover:scale-110"
                   />
-                  <div className="absolute bottom-4 right-4 rounded-2xl bg-brand-text px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-bg shadow-xl sm:bottom-6 sm:right-6 sm:px-5">
-                    {t('private.existingLabel', { stripAccents: true })}
-                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-brand-text via-brand-text/50 to-transparent"></div>
                 </div>
 
-                <div className="flex flex-grow flex-col p-5 sm:p-6 md:p-8">
-                  <div className="mb-4">
-                    <h3 className="text-xl font-serif font-bold leading-tight text-brand-text transition-colors group-hover:text-brand-terracotta md:text-2xl">
+                <div className="relative z-10 flex flex-grow flex-col p-8 sm:p-10 md:p-12">
+                  <div className="mb-auto">
+                    <div className="mb-8 inline-block rounded-full border border-brand-gold/30 bg-brand-gold/10 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-gold">
+                      • {t('private.curatedLabel', { defaultValue: 'CURATED' })}
+                    </div>
+
+                    <h3 className="mb-6 text-4xl font-serif font-bold italic leading-tight text-white transition-colors group-hover:text-brand-gold md:text-5xl">
                       {t('private.existingLabel')}
                     </h3>
+
+                    <p className="text-base leading-relaxed text-white/70 max-w-sm">
+                      {t('private.existingDesc')}
+                    </p>
                   </div>
 
-                  <p className="mb-8 text-sm leading-relaxed text-brand-text/60">
-                    {t('private.existingDesc')}
-                  </p>
-
-                  <div className="mt-auto pt-4">
+                  <div className="mt-12">
                     <button
                       type="button"
                       onClick={scrollToSetupEvents}
-                      className="flex min-h-11 w-full items-center justify-center gap-3 rounded-full border border-brand-text bg-white px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text shadow-sm transition-all hover:bg-brand-text hover:text-white"
+                      className="flex min-h-14 w-full items-center justify-between rounded-full border border-white/20 bg-white/5 backdrop-blur-md px-10 py-5 text-[11px] font-bold uppercase tracking-[0.2em] text-white shadow-sm transition-all hover:bg-white hover:text-brand-text hover:scale-[1.02]"
                     >
-                      {t('private.seeExisting', { stripAccents: true })} <ArrowRight className="h-4 w-4 rotate-90" />
+                      {t('private.seeExisting', { stripAccents: true })} 
+                      <ArrowRight className="h-5 w-5 rotate-90" />
                     </button>
                   </div>
                 </div>
@@ -176,36 +195,37 @@ const PrivateEventsView: React.FC = () => {
 
             {/* Other Admin-Managed Events */}
             {privateEvents.length > 0 ? (
-              <div className="flex flex-col w-full items-center justify-center gap-10 md:flex-row md:flex-wrap md:items-stretch lg:gap-12">
+              <div className="grid w-full grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 lg:gap-12 justify-items-center">
                 {privateEvents.map((entry) => (
                   <div
                     key={entry.id}
-                    className="group flex w-full max-w-[400px] flex-col overflow-hidden rounded-[28px] border border-brand-border bg-white shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[40px]"
+                    className="group relative isolate flex w-full max-w-[400px] flex-col overflow-hidden rounded-[32px] border border-brand-border bg-brand-text shadow-sm transition-all duration-500 hover:shadow-2xl sm:rounded-[40px] min-h-[450px]"
                   >
-                    <div className="relative aspect-[16/10] shrink-0 overflow-hidden">
+                    {/* Background Image with Overlay */}
+                    <div className="absolute inset-0 z-0">
                       <img
                         src={entry.image_url || ''}
                         alt={entry.name}
-                        className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+                        className="h-full w-full object-cover opacity-40 transition-transform duration-[1.5s] group-hover:scale-110"
                         referrerPolicy="no-referrer"
                       />
-                      <div className="absolute bottom-4 right-4 rounded-2xl bg-brand-text px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-bg shadow-xl sm:bottom-6 sm:right-6 sm:px-5">
-                        {t('private.privateLabel', { stripAccents: true })}
-                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-brand-text via-brand-text/60 to-transparent"></div>
                     </div>
 
-                    <div className="flex flex-grow flex-col p-5 sm:p-6 md:p-8">
-                      <div className="mb-4">
-                        <h3 className="text-xl font-serif font-bold leading-tight text-brand-text transition-colors group-hover:text-brand-terracotta md:text-2xl">
+                    <div className="relative z-10 flex flex-grow flex-col p-6 sm:p-8">
+                      <div className="mb-auto">
+                        <div className="mb-4 inline-block rounded-full bg-brand-gold/10 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-brand-gold border border-brand-gold/20">
+                          {t('private.privateLabel', { stripAccents: true })}
+                        </div>
+                        <h3 className="text-2xl font-serif font-bold italic leading-tight text-white transition-colors group-hover:text-brand-gold">
                           {entry.name}
                         </h3>
+                        <p className="mt-4 text-sm leading-relaxed text-white/60 line-clamp-4">
+                          {entry.description || t('private.placeholderDesc')}
+                        </p>
                       </div>
 
-                      <p className="mb-8 text-sm leading-relaxed text-brand-text/60">
-                        {entry.description || t('private.placeholderDesc')}
-                      </p>
-
-                      <div className="mt-auto pt-4">
+                      <div className="mt-8">
                         <button
                           type="button"
                           onClick={() => setSelectedEventForInquiry({
@@ -213,9 +233,10 @@ const PrivateEventsView: React.FC = () => {
                             isCustom: false,
                             templateId: entry.id
                           })}
-                          className="flex min-h-11 w-[150px] sm:w-[180px] items-center justify-center gap-3 rounded-full bg-brand-text px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-bg shadow-lg transition-all hover:bg-brand-gold"
+                          className="flex h-12 w-full items-center justify-center gap-3 rounded-full bg-white px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text shadow-lg transition-all hover:bg-brand-gold"
                         >
-                          {t('private.inquire', { stripAccents: true })} <ArrowRight className="h-4 w-4" />
+                          {t('private.inquire', { stripAccents: true })} 
+                          <ArrowRight className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
@@ -228,6 +249,7 @@ const PrivateEventsView: React.FC = () => {
               </div>
             )}
           </div>
+
         )}
 
         <style>{`

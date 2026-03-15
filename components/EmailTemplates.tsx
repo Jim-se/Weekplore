@@ -35,6 +35,7 @@ const VARIABLE_REFERENCE = [
   { key: '{date}', label: 'Date & Time', example: 'Saturday, 15 June 2024 at 18:30' },
   { key: '{location}', label: 'Location', example: 'Gaia Estate, Nemea' },
   { key: '{people}', label: 'Guests', example: '2' },
+  { key: '{price}', label: 'Total Price', example: '€150.00' },
   { key: '{cancel_url}', label: 'Cancellation Link', example: 'Clickable link' },
 ];
 
@@ -59,6 +60,24 @@ const VariableReference: React.FC = () => (
   </div>
 );
 
+const EMPTY_TEMPLATE = {
+  subject_eng: '',
+  body_eng: '',
+  subject_el: '',
+  body_el: ''
+};
+
+const normalizeTemplate = (template: EmailTemplate): EmailTemplate => ({
+  ...template,
+  subject_eng: template.subject_eng ?? template.subject ?? '',
+  body_eng: template.body_eng ?? template.body ?? '',
+  subject_el: template.subject_el ?? '',
+  body_el: template.body_el ?? ''
+});
+
+const getTemplateDisplayName = (template: EmailTemplate) =>
+  template.subject_eng || template.subject_el || template.subject || 'Untitled template';
+
 const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [purposes, setPurposes] = useState<EmailPurpose[]>([]);
@@ -66,7 +85,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<EmailTemplate | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [newTemplate, setNewTemplate] = useState({ subject: '', body: '' });
+  const [newTemplate, setNewTemplate] = useState(EMPTY_TEMPLATE);
   const [logs, setLogs] = useState<EmailLog[]>([]);
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
@@ -82,7 +101,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
         emailService.getTemplates(),
         emailService.getPurposes()
       ]);
-      setTemplates(templatesData);
+      setTemplates(templatesData.map(normalizeTemplate));
       setPurposes(purposesData);
     } catch (error: any) {
       setMessage({ type: 'error', text: 'Error fetching data: ' + error.message });
@@ -105,18 +124,20 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTemplate.subject || !newTemplate.body) {
+    if (!newTemplate.subject_eng || !newTemplate.body_eng || !newTemplate.subject_el || !newTemplate.body_el) {
       setMessage({ type: 'error', text: 'Please fill all fields' });
       return;
     }
 
     try {
       await emailService.createTemplate({
-        subject: newTemplate.subject,
-        body: newTemplate.body
+        subject_eng: newTemplate.subject_eng,
+        body_eng: newTemplate.body_eng,
+        subject_el: newTemplate.subject_el,
+        body_el: newTemplate.body_el
       });
       setMessage({ type: 'success', text: 'Template created!' });
-      setNewTemplate({ subject: '', body: '' });
+      setNewTemplate(EMPTY_TEMPLATE);
       setIsAdding(false);
       fetchInitialData();
     } catch (error: any) {
@@ -130,8 +151,10 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
 
     try {
       await emailService.updateTemplate(editingTemplate.id, {
-        subject: editingTemplate.subject,
-        body: editingTemplate.body
+        subject_eng: editingTemplate.subject_eng,
+        body_eng: editingTemplate.body_eng,
+        subject_el: editingTemplate.subject_el,
+        body_el: editingTemplate.body_el
       });
       setMessage({ type: 'success', text: 'Template updated!' });
       setEditingTemplate(null);
@@ -192,17 +215,28 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
     link.click();
   };
 
-  const renderPreview = (template: EmailTemplate) => {
-    const dummyData = {
-      name: 'Alexandros',
-      event: 'Sunset Wine Tasting',
-      date: 'Saturday, 15 June 2024 at 18:30',
-      location: 'Gaia Estate, Nemea',
-      people: '2',
-      cancel_url: '#'
-    };
+  const renderPreview = (body: string, language: 'en' | 'el') => {
+    const dummyData = language === 'el'
+      ? {
+        name: 'Αλεξάνδρα',
+        event: 'Sunset Wine Tasting',
+        date: 'Σάββατο 15 Ιουνίου 2024 στις 18:30',
+        location: 'Gaia Estate, Nemea',
+        people: '2',
+        price: '150.00',
+        cancel_url: '#'
+      }
+      : {
+        name: 'Alexandros',
+        event: 'Sunset Wine Tasting',
+        date: 'Saturday, 15 June 2024 at 18:30',
+        location: 'Gaia Estate, Nemea',
+        people: '2',
+        price: '150.00',
+        cancel_url: '#'
+      };
 
-    let html = template.body;
+    let html = body;
     // Replace placeholders
     Object.entries(dummyData).forEach(([key, value]) => {
       const regex = new RegExp(`{${key}}`, 'g');
@@ -220,6 +254,18 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
     }
 
     return html;
+  };
+
+  const renderPreviewSubject = (subject: string, language: 'en' | 'el') => {
+    const replacementName = language === 'el' ? 'Αλεξάνδρα' : 'Alexandros';
+    return subject
+      .replace(/{name}/g, replacementName)
+      .replace(/{event}/g, 'Sunset Wine Tasting')
+      .replace(/{date}/g, language === 'el' ? 'Σάββατο 15 Ιουνίου 2024 στις 18:30' : 'Saturday, 15 June 2024 at 18:30')
+      .replace(/{location}/g, 'Gaia Estate, Nemea')
+      .replace(/{price}/g, '150.00')
+      .replace(/{people}/g, '2')
+      .replace(/{cancel_url}/g, '#');
   };
 
   if (loading && templates.length === 0) {
@@ -287,7 +333,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                   >
                     <option value="">Select template...</option>
                     {templates.map(t => (
-                      <option key={t.id} value={t.id}>[{t.id.slice(0, 8)}] {t.subject}</option>
+                      <option key={t.id} value={t.id}>[{String(t.id).slice(0, 8)}] {getTemplateDisplayName(t)}</option>
                     ))}
                   </select>
                   <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none ${assignedTemplateId ? 'text-brand-text/40' : 'text-brand-terracotta'
@@ -344,29 +390,67 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                 </div>
 
                 <form onSubmit={handleCreate} className="space-y-4">
-                  <div>
-                    <label className="block text-[9px] uppercase font-bold tracking-widest text-brand-text/40 mb-1.5">Subject</label>
-                    <input
-                      type="text"
-                      value={newTemplate.subject}
-                      onChange={(e) => setNewTemplate({ ...newTemplate, subject: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all text-sm"
-                      placeholder="e.g. {event} is happening!"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <div className="flex justify-between items-baseline mb-2">
-                      <label className="block text-[9px] uppercase font-bold tracking-widest text-brand-text/40">Body <span className="text-brand-gold normal-case tracking-normal font-bold">(HTML supported)</span></label>
+                  <VariableReference />
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    <div className="space-y-4 rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] uppercase font-bold tracking-[0.3em] text-brand-gold">English</h4>
+                        <span className="text-[9px] uppercase font-bold tracking-widest text-brand-text/30">Sent to non-Greek browsers</span>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase font-bold tracking-widest text-brand-text/40 mb-1.5">Subject (EN)</label>
+                        <input
+                          type="text"
+                          value={newTemplate.subject_eng}
+                          onChange={(e) => setNewTemplate({ ...newTemplate, subject_eng: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all text-sm"
+                          placeholder="e.g. {event} is happening!"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-baseline mb-2">
+                          <label className="block text-[9px] uppercase font-bold tracking-widest text-brand-text/40">Body (EN) <span className="text-brand-gold normal-case tracking-normal font-bold">(HTML supported)</span></label>
+                        </div>
+                        <textarea
+                          value={newTemplate.body_eng}
+                          onChange={(e) => setNewTemplate({ ...newTemplate, body_eng: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all min-h-[220px] text-xs font-mono"
+                          placeholder={`<p>Hi {name},</p>\n<p>Your booking for <strong>{event}</strong> is confirmed for {date}.</p>\n<br/>\n<a href="{cancel_url}" style="display:inline-block;padding:12px 28px;background:#1a1a1a;color:white;border-radius:99px;text-decoration:none;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Cancel My Booking</a>`}
+                          required
+                        />
+                      </div>
                     </div>
-                    <VariableReference />
-                    <textarea
-                      value={newTemplate.body}
-                      onChange={(e) => setNewTemplate({ ...newTemplate, body: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all min-h-[220px] text-xs font-mono"
-                      placeholder={`<p>Hi {name},</p>\n<p>Your booking for <strong>{event}</strong> is confirmed for {date}.</p>\n<br/>\n<a href="{cancel_url}" style="display:inline-block;padding:12px 28px;background:#1a1a1a;color:white;border-radius:99px;text-decoration:none;font-size:12px;letter-spacing:2px;text-transform:uppercase;">Cancel My Booking</a>`}
-                      required
-                    />
+
+                    <div className="space-y-4 rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[10px] uppercase font-bold tracking-[0.3em] text-brand-gold">Greek</h4>
+                        <span className="text-[9px] uppercase font-bold tracking-widest text-brand-text/30">Sent to Greek browsers</span>
+                      </div>
+                      <div>
+                        <label className="block text-[9px] uppercase font-bold tracking-widest text-brand-text/40 mb-1.5">Subject (EL)</label>
+                        <input
+                          type="text"
+                          value={newTemplate.subject_el}
+                          onChange={(e) => setNewTemplate({ ...newTemplate, subject_el: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all text-sm"
+                          placeholder="π.χ. Η κράτησή σας για το {event}"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <div className="flex justify-between items-baseline mb-2">
+                          <label className="block text-[9px] uppercase font-bold tracking-widest text-brand-text/40">Body (EL) <span className="text-brand-gold normal-case tracking-normal font-bold">(HTML supported)</span></label>
+                        </div>
+                        <textarea
+                          value={newTemplate.body_el}
+                          onChange={(e) => setNewTemplate({ ...newTemplate, body_el: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all min-h-[220px] text-xs font-mono"
+                          placeholder={`<p>Γεια σου {name},</p>\n<p>Η κράτησή σου για το <strong>{event}</strong> καταχωρήθηκε για {date}.</p>`}
+                          required
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <button
@@ -400,23 +484,41 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                         <XCircle className="w-5 h-5" />
                       </button>
                     </div>
-                    <input
-                      type="text"
-                      value={editingTemplate.subject}
-                      onChange={(e) => setEditingTemplate({ ...editingTemplate, subject: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all text-sm font-bold"
-                      required
-                    />
-                    <div className="mb-2 flex justify-between items-baseline">
-                      <span className="text-[9px] uppercase font-bold tracking-widest text-brand-text/40">Body <span className="text-brand-gold normal-case tracking-normal font-bold">(HTML)</span></span>
-                    </div>
                     <VariableReference />
-                    <textarea
-                      value={editingTemplate.body}
-                      onChange={(e) => setEditingTemplate({ ...editingTemplate, body: e.target.value })}
-                      className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all min-h-[150px] text-xs font-mono"
-                      required
-                    />
+                    <div className="grid gap-6 lg:grid-cols-2">
+                      <div className="space-y-4 rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                        <h4 className="text-[10px] uppercase font-bold tracking-[0.3em] text-brand-gold">English</h4>
+                        <input
+                          type="text"
+                          value={editingTemplate.subject_eng || ''}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, subject_eng: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all text-sm font-bold"
+                          required
+                        />
+                        <textarea
+                          value={editingTemplate.body_eng || ''}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, body_eng: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all min-h-[180px] text-xs font-mono"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-4 rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                        <h4 className="text-[10px] uppercase font-bold tracking-[0.3em] text-brand-gold">Greek</h4>
+                        <input
+                          type="text"
+                          value={editingTemplate.subject_el || ''}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, subject_el: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all text-sm font-bold"
+                          required
+                        />
+                        <textarea
+                          value={editingTemplate.body_el || ''}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, body_el: e.target.value })}
+                          className="w-full px-4 py-3 rounded-xl border border-brand-border focus:border-brand-gold outline-none transition-all min-h-[180px] text-xs font-mono"
+                          required
+                        />
+                      </div>
+                    </div>
                     <div className="flex gap-3">
                       <button type="submit" className="flex-1 py-3 bg-brand-gold text-white rounded-xl font-bold uppercase tracking-widest text-[9px] hover:bg-brand-text transition-all">Save Changes</button>
                       <button type="button" onClick={() => setEditingTemplate(null)} className="px-6 py-3 bg-brand-bg text-brand-text/40 rounded-xl font-bold uppercase tracking-widest text-[9px]">Cancel</button>
@@ -430,31 +532,32 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-0.5">
-                        <h3 className="text-sm font-bold text-brand-text truncate">{template.subject}</h3>
+                        <h3 className="text-sm font-bold text-brand-text truncate">{template.subject_eng || 'No English subject'}</h3>
                         {assignedPurpose && (
                           <span className="text-[8px] font-bold uppercase tracking-widest bg-brand-gold/10 text-brand-gold/80 px-2 py-0.5 rounded-full">
                             Active: {assignedPurpose.label}
                           </span>
                         )}
                       </div>
-                      <p className="text-brand-text/60 text-[12px] line-clamp-1 mb-2">{template.body}</p>
+                      <p className="text-brand-text/60 text-[12px] line-clamp-1 mb-1">{template.body_eng || template.body || 'No English body'}</p>
+                      <p className="text-brand-text/40 text-[11px] line-clamp-1 mb-2">EL: {template.subject_el || 'No Greek subject'}</p>
                       <div className="flex items-center gap-2">
                         <span className="inline-flex items-center px-2 py-1 rounded bg-brand-border/50 text-brand-text/70 font-mono text-[10px] font-bold">
-                          ID: {template.id.slice(0, 8)}
+                          ID: {String(template.id).slice(0, 8)}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex gap-1.5 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => setPreviewTemplate(template)}
+                        onClick={() => setPreviewTemplate(normalizeTemplate(template))}
                         className="p-2.5 text-brand-text/40 hover:text-brand-gold transition-all"
                         title="Preview"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => setEditingTemplate(template)}
+                        onClick={() => setEditingTemplate(normalizeTemplate(template))}
                         className="p-2.5 text-brand-text/40 hover:text-brand-gold transition-all"
                         title="Edit"
                       >
@@ -502,7 +605,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
             >
               <h2 className="text-lg font-bold serif-font mb-2">Delete Template?</h2>
               <p className="text-brand-text/60 text-xs mb-6 px-4">
-                Permanently remove "{deletingTemplate.subject}"?
+                Permanently remove "{getTemplateDisplayName(deletingTemplate)}"?
               </p>
               <div className="flex gap-3">
                 <button
@@ -654,16 +757,29 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
               <div className="flex-1 overflow-y-auto p-12 bg-[#fcfbf9] scrollbar-hide">
                 <div className="max-w-xl mx-auto space-y-8">
                   <div className="space-y-1">
-                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/30">Subject</p>
-                    <p className="text-lg font-bold text-brand-text">{previewTemplate.subject.replace(/{event}/g, 'Sunset Wine Tasting')}</p>
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/30">English Subject</p>
+                    <p className="text-lg font-bold text-brand-text">{renderPreviewSubject(previewTemplate.subject_eng || '', 'en')}</p>
                   </div>
 
                   <div className="h-[1px] w-full bg-brand-border/50"></div>
 
-                  {/* Rendered Email Body */}
                   <div
                     className="prose prose-sm max-w-none text-brand-text serif-font leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: renderPreview(previewTemplate) }}
+                    dangerouslySetInnerHTML={{ __html: renderPreview(previewTemplate.body_eng || '', 'en') }}
+                  />
+
+                  <div className="h-[1px] w-full bg-brand-border/50"></div>
+
+                  <div className="space-y-1">
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/30">Greek Subject</p>
+                    <p className="text-lg font-bold text-brand-text">{renderPreviewSubject(previewTemplate.subject_el || '', 'el')}</p>
+                  </div>
+
+                  <div className="h-[1px] w-full bg-brand-border/50"></div>
+
+                  <div
+                    className="prose prose-sm max-w-none text-brand-text serif-font leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: renderPreview(previewTemplate.body_el || '', 'el') }}
                   />
                 </div>
               </div>
