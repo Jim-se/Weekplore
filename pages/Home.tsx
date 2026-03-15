@@ -12,7 +12,8 @@ interface HomeProps {
 const HERO_IMAGES = [
   "/images/hero-1.jpg",
   "/images/hero-2.jpg",
-  "/images/hero-3.jpg"
+  "/images/hero-3.jpg",
+  "/images/Screenshot 2026-03-15 214611.png"
 ];
 
 const PEOPLE_IMAGES = [
@@ -22,13 +23,13 @@ const PEOPLE_IMAGES = [
 ];
 
 const SERVICE_IMAGES = [
-  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80",
+  "/images/Screenshot 2026-03-15 214611.png",
   "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1530103862676-de8892bf309c?auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&q=80",
+  "/images/683cfad3dbf44bec5121280467b7d994.jpg",
+  "/images/IMG_0010.jpeg",
   "https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1522066895315-9cc01a21cb16?auto=format&fit=crop&q=80",
-  "https://images.unsplash.com/photo-1519682577862-22b62b24e4d6?auto=format&fit=crop&q=80",
+  "/images/IMG_0011.jpeg",
+  "/images/9b49cfbb62b029e292b4842ec9a5cbad.jpg",
 ];
 
 const Home: React.FC<HomeProps> = ({ onNavigate }) => {
@@ -64,7 +65,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
           eventService.getVisibleReviews(),
           eventService.getPeople()
         ]);
-        
+
         setVisibleReviews(reviewsData);
         setPeople(peopleData);
       } catch (error) {
@@ -159,13 +160,13 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
               {/* Minimal Manual Arrows */}
               <div className="absolute inset-0 z-30 flex items-center justify-between px-4 pointer-events-none">
-                <button 
+                <button
                   onClick={() => setCurrentHero((prev) => (prev - 1 + HERO_IMAGES.length) % HERO_IMAGES.length)}
                   className="pointer-events-auto p-2 text-white/30 hover:text-white transition-all hover:scale-110"
                 >
                   <ChevronLeft size={40} strokeWidth={1.5} />
                 </button>
-                <button 
+                <button
                   onClick={() => setCurrentHero((prev) => (prev + 1) % HERO_IMAGES.length)}
                   className="pointer-events-auto p-2 text-white/30 hover:text-white transition-all hover:scale-110"
                 >
