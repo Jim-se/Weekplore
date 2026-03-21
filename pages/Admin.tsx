@@ -129,7 +129,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [privateEventInquiries, setPrivateEventInquiries] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [people, setPeople] = useState<any[]>([]);
-  const [newPrivateEvent, setNewPrivateEvent] = useState({ name: '', description: '', image_url: '' });
+  const [newPrivateEvent, setNewPrivateEvent] = useState({ name: '', description: '', image_url: '', is_visible: true });
   const [isAddingPerson, setIsAddingPerson] = useState(false);
   const [newPerson, setNewPerson] = useState({ name: '', description: '', photo_link: '' });
   const [editingPerson, setEditingPerson] = useState<any | null>(null);
@@ -398,20 +398,26 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
       await eventService.createPrivateEvent({
         name: newPrivateEvent.name.trim(),
         description: newPrivateEvent.description.trim() || null,
-        image_url: newPrivateEvent.image_url.trim() || null
+        image_url: newPrivateEvent.image_url.trim() || null,
+        is_visible: newPrivateEvent.is_visible
       });
       setMessage({ type: 'success', text: 'Private event created!' });
-      setNewPrivateEvent({ name: '', description: '', image_url: '' });
+      setNewPrivateEvent({ name: '', description: '', image_url: '', is_visible: true });
       fetchPrivateEvents();
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
     }
   };
 
-  const handleUpdatePrivateEvent = async (privateEventId: string, data: Partial<Pick<PrivateEvent, 'name' | 'description' | 'image_url'>>) => {
+  const handleUpdatePrivateEvent = async (privateEventId: string, data: Partial<Pick<PrivateEvent, 'name' | 'description' | 'image_url' | 'is_visible'>>) => {
     try {
       await eventService.updatePrivateEvent(privateEventId, data);
-      setMessage({ type: 'success', text: 'Private event updated!' });
+      setMessage({
+        type: 'success',
+        text: data.is_visible === undefined
+          ? 'Private event updated!'
+          : `Private event ${data.is_visible ? 'shown on site' : 'hidden from site'}!`
+      });
       fetchPrivateEvents();
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
@@ -420,8 +426,15 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
   const handleDeletePrivateEvent = async (privateEventId: string) => {
     try {
-      await eventService.deletePrivateEvent(privateEventId);
-      setMessage({ type: 'success', text: 'Private event removed!' });
+      const result = await eventService.deletePrivateEvent(privateEventId);
+      const detachedInquiryCount = Number(result?.detachedInquiryCount) || 0;
+      const detachedInquiryLabel = detachedInquiryCount === 1 ? 'inquiry' : 'inquiries';
+      setMessage({
+        type: 'success',
+        text: detachedInquiryCount > 0
+          ? `Private event removed. ${detachedInquiryCount} linked ${detachedInquiryLabel} kept in history.`
+          : 'Private event removed!'
+      });
       fetchPrivateEvents();
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
@@ -1632,6 +1645,18 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                         placeholder="Short description for the private events page"
                       />
                     </div>
+                    <label className="md:col-span-2 flex items-center justify-between rounded-2xl border border-brand-border bg-brand-bg/20 px-5 py-4">
+                      <div>
+                        <span className="block text-[10px] font-bold uppercase tracking-widest text-brand-text/40">Visible on Site</span>
+                        <span className="mt-1 block text-xs text-brand-text/60">Hidden private events stay in admin but disappear from the public private events page.</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={newPrivateEvent.is_visible}
+                        onChange={(e) => setNewPrivateEvent({ ...newPrivateEvent, is_visible: e.target.checked })}
+                        className="h-5 w-5 rounded border-brand-border text-brand-gold focus:ring-brand-gold"
+                      />
+                    </label>
                   </div>
                 </div>
 
@@ -1676,6 +1701,19 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                     </div>
 
                     <div>
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-widest ${privateEvent.is_visible !== false ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                          {privateEvent.is_visible !== false ? 'Visible' : 'Hidden'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdatePrivateEvent(privateEvent.id, { is_visible: privateEvent.is_visible === false })}
+                          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-bold uppercase tracking-widest transition-all ${privateEvent.is_visible !== false ? 'bg-brand-bg text-brand-text/70 hover:bg-brand-text hover:text-white' : 'bg-brand-gold/10 text-brand-gold hover:bg-brand-gold hover:text-white'}`}
+                        >
+                          {privateEvent.is_visible !== false ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {privateEvent.is_visible !== false ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
                       <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-brand-text/40">Name</label>
                       <input
                         type="text"
@@ -1700,7 +1738,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                         className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-red-500 transition-all hover:bg-red-500 hover:text-white"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Remove
+                        Delete
                       </button>
                     </div>
                   </motion.div>

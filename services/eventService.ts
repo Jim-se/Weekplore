@@ -204,7 +204,7 @@ export const eventService = {
     return await response.json();
   },
 
-  async createPrivateEvent(privateEventData: Pick<PrivateEvent, 'name' | 'description' | 'image_url'>) {
+  async createPrivateEvent(privateEventData: Pick<PrivateEvent, 'name' | 'description' | 'image_url' | 'is_visible'>) {
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl('/api/admin/private-events'), {
       method: 'POST',
@@ -217,7 +217,7 @@ export const eventService = {
     return await response.json() as PrivateEvent;
   },
 
-  async updatePrivateEvent(privateEventId: string, privateEventData: Partial<Pick<PrivateEvent, 'name' | 'description' | 'image_url'>>) {
+  async updatePrivateEvent(privateEventId: string, privateEventData: Partial<Pick<PrivateEvent, 'name' | 'description' | 'image_url' | 'is_visible'>>) {
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl(`/api/admin/private-events/${privateEventId}`), {
       method: 'PUT',
@@ -239,7 +239,7 @@ export const eventService = {
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, 'Failed to delete private event'));
     }
-    return await response.json();
+    return await response.json() as { success: boolean; detachedInquiryCount?: number };
   },
 
   async updateBookingStatus(bookingIds: number[], status: string) {

@@ -23,14 +23,15 @@ const PrivateEventsView: React.FC = () => {
     created_at: '',
     name: t('private.createYourOwn'),
     description: t('private.createYourOwnDesc'),
-    image_url: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80'
+    image_url: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80',
+    is_visible: true
   }), [t]);
 
   useEffect(() => {
     const fetchPrivateEvents = async () => {
       try {
         const data = await eventService.getPrivateEvents();
-        setPrivateEvents(data);
+        setPrivateEvents(data.filter((event) => event.is_visible !== false));
       } catch (error) {
         console.error('Error fetching private events:', error);
         setMessage({ type: 'error', text: t('private.loadError') });

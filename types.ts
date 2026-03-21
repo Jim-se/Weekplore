@@ -93,6 +93,7 @@ export interface PrivateEvent {
   name: string;
   description: string | null;
   image_url: string | null;
+  is_visible?: boolean | null;
 }
 
 export interface PrivateEventInquiryFormData {
