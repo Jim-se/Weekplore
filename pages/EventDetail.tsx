@@ -13,6 +13,24 @@ interface EventDetailProps {
   onNavigate: (page: string) => void;
 }
 
+const renderDescriptionWithOriginalNumerals = (text: string) => {
+  const parts = text.split(/(\d+(?:[.,:/-]\d+)*%?)/g);
+
+  return parts.map((part, index) => {
+    if (!part) return null;
+
+    if (/^\d+(?:[.,:/-]\d+)*%?$/.test(part)) {
+      return (
+        <span key={`num-${index}`} className="serif-font">
+          {part}
+        </span>
+      );
+    }
+
+    return <React.Fragment key={`text-${index}`}>{part}</React.Fragment>;
+  });
+};
+
 const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
   const { language, t } = useLanguage();
   const [event, setEvent] = useState<WeekploreEvent | null>(null);
@@ -238,8 +256,8 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
             {/* Left Column: Description & Details */}
             <div className="space-y-10 sm:space-y-16 lg:col-span-7">
               <section>
-                <p className="text-xl font-light leading-relaxed text-brand-text/80 serif-font italic sm:text-2xl md:text-3xl">
-                  {event.full_description || event.short_description}
+                <p className="event-description-font text-xl font-light leading-relaxed text-brand-text/80 italic sm:text-2xl md:text-3xl">
+                  {renderDescriptionWithOriginalNumerals(event.full_description || event.short_description)}
                 </p>
               </section>
 

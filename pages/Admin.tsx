@@ -84,6 +84,23 @@ const getActiveShifts = (shifts: any[] = []) =>
 const getShiftBookingCount = (shift: any) =>
   shift?.bookings?.reduce((sum: number, booking: any) => sum + (booking.number_of_people || 0), 0) || 0;
 
+const getEditableEventImages = (event: any) => {
+  if (Array.isArray(event?.images) && event.images.length > 0) {
+    return event.images;
+  }
+
+  if (event?.cover_image_url) {
+    return [{
+      id: `cover-${event.id}`,
+      image_url: event.cover_image_url,
+      is_cover: true,
+      is_fallback: true
+    }];
+  }
+
+  return [];
+};
+
 interface AdminProps {
   onNavigate: (page: string) => void;
 }
@@ -248,8 +265,18 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     try {
       const data = await eventService.getAdminEvents();
       setEvents(data);
+      return data;
     } catch (error) {
       console.error('Error fetching admin events:', error);
+      return [];
+    }
+  };
+
+  const refreshEditingEvent = async (eventId: number) => {
+    const updatedEvents = await fetchEvents();
+    const refreshedEvent = updatedEvents.find((event: any) => event.id === eventId);
+    if (refreshedEvent) {
+      setEditingEvent(refreshedEvent);
     }
   };
 
@@ -694,6 +721,50 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
     if (tempProduct.category_id === String(categoryId)) {
       setTempProduct(createEmptyProductDraft());
+    }
+  };
+
+  const handleEventImageUpload = async (file: File, makeCover: boolean = false) => {
+    if (!editingEvent) return;
+
+    try {
+      setUploading(true);
+      const imageUrl = await eventService.uploadImage(file);
+      await eventService.addEventImage(editingEvent.id, imageUrl, makeCover);
+      setMessage({ type: 'success', text: makeCover ? 'Cover image updated!' : 'Event image added!' });
+      await refreshEditingEvent(editingEvent.id);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: 'Upload failed: ' + error.message });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSetEventCoverImage = async (imageUrl: string) => {
+    if (!editingEvent) return;
+
+    try {
+      await eventService.setEventCoverImage(editingEvent.id, imageUrl);
+      setMessage({ type: 'success', text: 'Cover image updated!' });
+      await refreshEditingEvent(editingEvent.id);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handleDeleteEventImage = async (imageId: number) => {
+    if (!editingEvent) return;
+
+    if (!window.confirm('Remove this image from the event gallery?')) {
+      return;
+    }
+
+    try {
+      await eventService.deleteEventImage(imageId);
+      setMessage({ type: 'success', text: 'Event image removed!' });
+      await refreshEditingEvent(editingEvent.id);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
     }
   };
 
@@ -2099,6 +2170,92 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-10 space-y-12">
+                <section className="space-y-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Event Images</h3>
+                      <p className="mt-2 text-xs text-brand-text/50">Upload new images, choose the cover photo, or remove old gallery images.</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-brand-text px-5 py-3 text-[10px] font-bold uppercase tracking-[0.24em] text-brand-bg transition-all hover:bg-brand-gold">
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleEventImageUpload(file, true);
+                            e.target.value = '';
+                          }}
+                        />
+                        <ImageIcon className="h-4 w-4" />
+                        {uploading ? 'Uploading...' : 'Replace Cover'}
+                      </label>
+                      <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-brand-border px-5 py-3 text-[10px] font-bold uppercase tracking-[0.24em] text-brand-text transition-all hover:border-brand-gold hover:text-brand-gold">
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleEventImageUpload(file, false);
+                            e.target.value = '';
+                          }}
+                        />
+                        <PlusCircle className="h-4 w-4" />
+                        Add Image
+                      </label>
+                    </div>
+                  </div>
+
+                  {getEditableEventImages(editingEvent).length > 0 ? (
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {getEditableEventImages(editingEvent).map((image: any) => (
+                        <div key={String(image.id)} className="overflow-hidden rounded-[28px] border border-brand-border bg-white shadow-sm">
+                          <div className="relative aspect-[4/3] bg-brand-bg/20">
+                            <img
+                              src={image.image_url}
+                              alt={editingEvent.title}
+                              className="h-full w-full object-cover"
+                              referrerPolicy="no-referrer"
+                            />
+                            {image.is_cover && (
+                              <span className="absolute left-3 top-3 rounded-full bg-brand-gold px-3 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-lg">
+                                Cover
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between gap-3 p-4">
+                            <button
+                              type="button"
+                              disabled={Boolean(image.is_cover)}
+                              onClick={() => handleSetEventCoverImage(image.image_url)}
+                              className="inline-flex items-center gap-2 rounded-xl bg-brand-bg px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-text transition-all hover:bg-brand-text hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                              <ImageIcon className="h-4 w-4" />
+                              Set Cover
+                            </button>
+                            {!image.is_fallback && typeof image.id === 'number' && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteEventImage(image.id)}
+                                className="inline-flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-red-500 transition-all hover:bg-red-500 hover:text-white"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-[28px] border-2 border-dashed border-brand-border p-10 text-center text-brand-text/40">
+                      No images uploaded yet.
+                    </div>
+                  )}
+                </section>
+
                 {/* Basic Info Update */}
                 <section className="space-y-8">
                   <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Event Details</h3>

@@ -152,6 +152,49 @@ export const eventService = {
     return await response.json();
   },
 
+  async addEventImage(eventId: number, imageUrl: string, makeCover = false) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl(`/api/admin/events/${eventId}/images`), {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        image_url: imageUrl,
+        make_cover: makeCover
+      })
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to add event image'));
+    }
+    return await response.json();
+  },
+
+  async setEventCoverImage(eventId: number, imageUrl: string) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl(`/api/admin/events/${eventId}/cover-image`), {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        image_url: imageUrl
+      })
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to update cover image'));
+    }
+    return await response.json();
+  },
+
+  async deleteEventImage(imageId: number) {
+    const headers = await getAuthHeaders(false);
+    const response = await fetch(buildApiUrl(`/api/admin/event-images/${imageId}`), {
+      method: 'DELETE',
+      headers
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to remove event image'));
+    }
+    return await response.json();
+  },
+
   async archiveEvent(eventId: number, options: { sendCancellationEmails?: boolean } = {}) {
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl(`/api/admin/events/${eventId}`), {
