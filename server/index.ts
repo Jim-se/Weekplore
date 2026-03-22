@@ -629,7 +629,8 @@ const archiveShiftAndNotify = async (
 const archiveEventAndNotify = async (
     eventId: string | number,
     status: unknown = 'archived',
-    extraUpdates: Record<string, unknown> = {}
+    extraUpdates: Record<string, unknown> = {},
+    options: { sendCancellationEmails?: boolean } = {}
 ) => {
     const { data: event, error: eventErr } = await supabase
         .from('events')
@@ -642,6 +643,7 @@ const archiveEventAndNotify = async (
     }
 
     const archiveStatus = toArchiveStatus(status);
+    const shouldSendCancellationEmails = options.sendCancellationEmails !== false;
     const { data: shifts, error: shiftsError } = await supabase
         .from('shifts')
         .select('*')
@@ -655,7 +657,7 @@ const archiveEventAndNotify = async (
     const shiftIdsToNotify = shiftsToNotify.map((shift) => shift.id);
     const bookingsByShift = new Map<number, any[]>();
 
-    if (shiftIdsToNotify.length > 0) {
+    if (shouldSendCancellationEmails && shiftIdsToNotify.length > 0) {
         const { data: bookings, error: bookingsError } = await supabase
             .from('bookings')
             .select('*')
@@ -700,7 +702,7 @@ const archiveEventAndNotify = async (
         }
     }
 
-    if (shiftsToNotify.length > 0) {
+    if (shouldSendCancellationEmails && shiftsToNotify.length > 0) {
         const template = await getShiftCancelledTemplate();
 
         for (const shift of shiftsToNotify) {
@@ -1801,7 +1803,15 @@ app.put('/api/admin/events/:id', requireAdmin, async (req, res) => {
 
         if (isArchivedStatus(safeEventData.status)) {
             const { status, ...otherUpdates } = safeEventData;
-            const data = await archiveEventAndNotify(req.params.id, status, otherUpdates);
+            const sendCancellationEmails = req.body?.sendCancellationEmails;
+
+            if (sendCancellationEmails !== undefined && typeof sendCancellationEmails !== 'boolean') {
+                return res.status(400).json({ error: 'sendCancellationEmails must be a boolean.' });
+            }
+
+            const data = await archiveEventAndNotify(req.params.id, status, otherUpdates, {
+                sendCancellationEmails,
+            });
             return res.json(data);
         }
 
@@ -1821,8 +1831,22 @@ app.put('/api/admin/events/:id', requireAdmin, async (req, res) => {
 
 app.delete('/api/admin/events/:id', requireAdmin, async (req, res) => {
     try {
-        const data = await archiveEventAndNotify(req.params.id, 'archived');
-        res.json({ success: true, message: 'Event archived and notifications triggered.', event: data });
+        const sendCancellationEmails = req.body?.sendCancellationEmails;
+
+        if (sendCancellationEmails !== undefined && typeof sendCancellationEmails !== 'boolean') {
+            return res.status(400).json({ error: 'sendCancellationEmails must be a boolean.' });
+        }
+
+        const data = await archiveEventAndNotify(req.params.id, 'archived', {}, {
+            sendCancellationEmails,
+        });
+        res.json({
+            success: true,
+            message: sendCancellationEmails === false
+                ? 'Event archived without sending cancellation emails.'
+                : 'Event archived and cancellation notifications triggered.',
+            event: data
+        });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

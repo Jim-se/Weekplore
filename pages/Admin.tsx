@@ -68,6 +68,13 @@ const formatSafeTime = (dateStr: string | null | undefined) => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
+const shouldDefaultToSendArchiveEmails = (eventDate: string | null | undefined) => {
+  if (!eventDate) return true;
+  const d = new Date(eventDate);
+  if (isNaN(d.getTime())) return true;
+  return d.getTime() >= Date.now();
+};
+
 const isArchivedStatus = (status: string | null | undefined) =>
   status === 'archived' || status === 'canceled' || status === 'cancelled';
 
@@ -137,6 +144,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [viewingArchivedEvent, setViewingArchivedEvent] = useState<any | null>(null);
   const [highlightedArchivedShiftId, setHighlightedArchivedShiftId] = useState<number | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<any | null>(null);
+  const [sendArchiveEmails, setSendArchiveEmails] = useState(true);
   const [deletingShift, setDeletingShift] = useState<any | null>(null);
   const [deletingProduct, setDeletingProduct] = useState<any | null>(null);
   const [deletingPerson, setDeletingPerson] = useState<any | null>(null);
@@ -533,11 +541,17 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleDeleteEvent = async (eventId: number) => {
+  const handleDeleteEvent = async (eventId: number, sendCancellationEmails: boolean) => {
     try {
-      await eventService.archiveEvent(eventId);
-      setMessage({ type: 'success', text: 'Event archived successfully.' });
+      await eventService.archiveEvent(eventId, { sendCancellationEmails });
+      setMessage({
+        type: 'success',
+        text: sendCancellationEmails
+          ? 'Event archived and cancellation emails were sent.'
+          : 'Event archived without sending cancellation emails.'
+      });
       setDeletingEvent(null);
+      setSendArchiveEmails(true);
       fetchEvents();
     } catch (error: any) {
       console.error('Archive error:', error);
@@ -1190,6 +1204,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeletingEvent(event);
+                            setSendArchiveEmails(shouldDefaultToSendArchiveEmails(event.event_date));
                           }}
                           className="flex items-center gap-2 px-4 py-3 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-500 hover:text-white transition-all font-bold text-[10px] uppercase tracking-widest"
                           title="Archive Event"
@@ -2807,7 +2822,10 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
           <div
             className="fixed inset-0 z-[150] flex items-center justify-center p-6 bg-brand-text/60 backdrop-blur-md"
             onMouseDown={(e) => {
-              if (e.target === e.currentTarget) setDeletingEvent(null);
+              if (e.target === e.currentTarget) {
+                setDeletingEvent(null);
+                setSendArchiveEmails(true);
+              }
             }}
           >
             <motion.div
@@ -2824,15 +2842,35 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                 Archive <span className="font-bold text-brand-text">"{deletingEvent.title}"</span> and move it to the Archive tab?
                 This keeps the existing data but removes the event and its shifts from active listings.
               </p>
+              <label className="mb-8 flex items-start gap-3 rounded-2xl border border-brand-border bg-brand-bg/20 px-5 py-4 text-left">
+                <input
+                  type="checkbox"
+                  checked={sendArchiveEmails}
+                  onChange={(e) => setSendArchiveEmails(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-brand-border text-brand-gold focus:ring-brand-gold"
+                />
+                <span>
+                  <span className="block text-[10px] font-bold uppercase tracking-widest text-brand-text/50">Cancellation Emails</span>
+                  <span className="mt-2 block text-sm text-brand-text/70">
+                    Send a cancellation email to booked guests when this event is archived.
+                  </span>
+                  <span className="mt-1 block text-xs text-brand-text/50">
+                    Turn this off for events that already happened successfully and are only being moved to the archive.
+                  </span>
+                </span>
+              </label>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => handleDeleteEvent(deletingEvent.id)}
+                  onClick={() => handleDeleteEvent(deletingEvent.id, sendArchiveEmails)}
                   className="w-full py-4 bg-amber-500 text-white rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-amber-600 transition-all shadow-lg"
                 >
                   Yes, Archive Event
                 </button>
                 <button
-                  onClick={() => setDeletingEvent(null)}
+                  onClick={() => {
+                    setDeletingEvent(null);
+                    setSendArchiveEmails(true);
+                  }}
                   className="w-full py-4 bg-brand-bg text-brand-text/60 rounded-2xl font-bold uppercase tracking-widest text-xs hover:bg-brand-text hover:text-white transition-all"
                 >
                   Cancel

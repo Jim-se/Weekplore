@@ -152,11 +152,12 @@ export const eventService = {
     return await response.json();
   },
 
-  async archiveEvent(eventId: number) {
-    const headers = await getAuthHeaders(false);
+  async archiveEvent(eventId: number, options: { sendCancellationEmails?: boolean } = {}) {
+    const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl(`/api/admin/events/${eventId}`), {
       method: 'DELETE',
-      headers
+      headers,
+      body: JSON.stringify(options)
     });
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, 'Failed to archive event'));
