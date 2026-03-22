@@ -36,6 +36,7 @@ const VARIABLE_REFERENCE = [
   { key: '{location}', label: 'Location', example: 'Gaia Estate, Nemea' },
   { key: '{people}', label: 'Guests', example: '2' },
   { key: '{price}', label: 'Total Price', example: '€150.00' },
+  { key: '{booking_reference}', label: 'Booking Reference', example: 'WKP-000123' },
   { key: '{cancel_url}', label: 'Cancellation Link', example: 'Clickable link' },
 ];
 
@@ -224,6 +225,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
         location: 'Gaia Estate, Nemea',
         people: '2',
         price: '150.00',
+        booking_reference: 'WKP-000123',
         cancel_url: '#'
       }
       : {
@@ -233,6 +235,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
         location: 'Gaia Estate, Nemea',
         people: '2',
         price: '150.00',
+        booking_reference: 'WKP-000123',
         cancel_url: '#'
       };
 
@@ -265,6 +268,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
       .replace(/{location}/g, 'Gaia Estate, Nemea')
       .replace(/{price}/g, '150.00')
       .replace(/{people}/g, '2')
+      .replace(/{booking_reference}/g, 'WKP-000123')
       .replace(/{cancel_url}/g, '#');
   };
 
