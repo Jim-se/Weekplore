@@ -101,6 +101,65 @@ const getEditableEventImages = (event: any) => {
   return [];
 };
 
+const getBookingProductSelections = (booking: any) => {
+  if (!Array.isArray(booking?.booking_products)) {
+    return [];
+  }
+
+  return booking.booking_products
+    .map((selection: any) => {
+      const quantity = Number(selection?.quantity);
+      const productRecord = Array.isArray(selection?.products) ? selection.products[0] : selection?.products;
+      const title = typeof productRecord?.title === 'string' && productRecord.title.trim().length > 0
+        ? productRecord.title.trim()
+        : 'Product removed';
+
+      if (!Number.isFinite(quantity) || quantity < 1) {
+        return null;
+      }
+
+      return {
+        key: `${selection?.product_id ?? title}-${quantity}`,
+        label: `${quantity} x ${title}`
+      };
+    })
+    .filter(Boolean) as { key: string; label: string }[];
+};
+
+const getShiftProductTotals = (bookings: any[] = []) => {
+  const totals = new Map<string, { key: string; title: string; quantity: number }>();
+
+  bookings.forEach((booking) => {
+    if (!Array.isArray(booking?.booking_products)) {
+      return;
+    }
+
+    booking.booking_products.forEach((selection: any) => {
+      const quantity = Number(selection?.quantity);
+      const productRecord = Array.isArray(selection?.products) ? selection.products[0] : selection?.products;
+      const title = typeof productRecord?.title === 'string' && productRecord.title.trim().length > 0
+        ? productRecord.title.trim()
+        : 'Product removed';
+
+      if (!Number.isFinite(quantity) || quantity < 1) {
+        return;
+      }
+
+      const key = String(selection?.product_id ?? title);
+      const existing = totals.get(key);
+
+      if (existing) {
+        existing.quantity += quantity;
+        return;
+      }
+
+      totals.set(key, { key, title, quantity });
+    });
+  });
+
+  return Array.from(totals.values()).sort((left, right) => left.title.localeCompare(right.title));
+};
+
 interface AdminProps {
   onNavigate: (page: string) => void;
 }
@@ -970,6 +1029,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
       .filter((shift: any) => isArchivedStatus(shift.status))
       .map((shift: any) => ({ ...shift, eventTitle: event.title, eventId: event.id }))
   );
+  const viewingParticipantsProductTotals = getShiftProductTotals(viewingParticipantsShift?.bookings || []);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-brand-gold"></div></div>;
 
@@ -2905,51 +2965,99 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                             <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Name</th>
                             <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Contact</th>
                             <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">People</th>
+                            <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Products</th>
                             <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {viewingParticipantsShift.bookings.map((booking: any) => (
-                            <tr key={booking.id} className="border-b border-brand-border/50 hover:bg-brand-bg/10 transition-all">
-                              <td className="p-4">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedBookings.includes(booking.id)}
-                                  onChange={() => toggleBookingSelection(booking.id)}
-                                  className="w-4 h-4 rounded border-brand-border text-brand-gold focus:ring-brand-gold"
-                                />
-                              </td>
-                              <td className="p-4">
-                                <div className="font-bold text-sm">{booking.full_name}</div>
-                                <div className="text-[10px] text-brand-text/40">{new Date(booking.created_at).toLocaleDateString()}</div>
-                              </td>
-                              <td className="p-4">
-                                <div className="flex flex-col gap-1">
-                                  <div className="flex items-center gap-2 text-xs text-brand-text/60">
-                                    <Mail className="w-3 h-3" /> {booking.email}
+                          {viewingParticipantsShift.bookings.map((booking: any) => {
+                            const productSelections = getBookingProductSelections(booking);
+
+                            return (
+                              <tr key={booking.id} className="border-b border-brand-border/50 hover:bg-brand-bg/10 transition-all">
+                                <td className="p-4">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedBookings.includes(booking.id)}
+                                    onChange={() => toggleBookingSelection(booking.id)}
+                                    className="w-4 h-4 rounded border-brand-border text-brand-gold focus:ring-brand-gold"
+                                  />
+                                </td>
+                                <td className="p-4">
+                                  <div className="font-bold text-sm">{booking.full_name}</div>
+                                  <div className="text-[10px] text-brand-text/40">{new Date(booking.created_at).toLocaleDateString()}</div>
+                                </td>
+                                <td className="p-4">
+                                  <div className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2 text-xs text-brand-text/60">
+                                      <Mail className="w-3 h-3" /> {booking.email}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-brand-text/60">
+                                      <Phone className="w-3 h-3" /> {booking.phone}
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2 text-xs text-brand-text/60">
-                                    <Phone className="w-3 h-3" /> {booking.phone}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="p-4 text-center">
-                                <span className="inline-flex items-center justify-center w-8 h-8 bg-brand-bg rounded-full text-xs font-bold">
-                                  {booking.number_of_people}
-                                </span>
-                              </td>
-                              <td className="p-4 text-center">
-                                <span className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full ${booking.payment_status === 'paid'
-                                  ? 'bg-emerald-100 text-emerald-700'
-                                  : 'bg-amber-100 text-amber-700'
-                                  }`}>
-                                  {booking.payment_status || 'Pending'}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                                <td className="p-4 text-center">
+                                  <span className="inline-flex items-center justify-center w-8 h-8 bg-brand-bg rounded-full text-xs font-bold">
+                                    {booking.number_of_people}
+                                  </span>
+                                </td>
+                                <td className="p-4 min-w-[220px]">
+                                  {productSelections.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                      {productSelections.map((selection) => (
+                                        <span
+                                          key={selection.key}
+                                          className="inline-flex items-center rounded-full bg-brand-gold/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-gold"
+                                        >
+                                          {selection.label}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-brand-text/40">No products</span>
+                                  )}
+                                </td>
+                                <td className="p-4 text-center">
+                                  <span className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full ${booking.payment_status === 'paid'
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-amber-100 text-amber-700'
+                                    }`}>
+                                    {booking.payment_status || 'Pending'}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
+                    </div>
+
+                    <div className="rounded-[24px] border border-brand-border bg-brand-bg/20 p-5">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-sm font-bold">Product Totals</h3>
+                          <p className="mt-1 text-xs text-brand-text/50">Use this summary to see what needs to be ordered for this shift.</p>
+                        </div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-brand-text/40">
+                          {viewingParticipantsProductTotals.reduce((sum, item) => sum + item.quantity, 0)} Total Items
+                        </div>
+                      </div>
+
+                      {viewingParticipantsProductTotals.length > 0 ? (
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          {viewingParticipantsProductTotals.map((item) => (
+                            <span
+                              key={item.key}
+                              className="inline-flex items-center rounded-full bg-brand-text px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brand-bg"
+                            >
+                              {item.quantity} x {item.title}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-4 text-sm text-brand-text/40">No product selections yet for this shift.</p>
+                      )}
                     </div>
                   </div>
                 ) : (
