@@ -25,6 +25,30 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
   const locale = language === 'gr' ? 'el-GR' : 'en-US';
   const selectableProductCategories = getSelectableProductCategories(event.product_categories || []);
   const flatProducts = event.products || flattenProductCategories(event.product_categories || []);
+  const paymentDeadlineSource = event.payment_deadline;
+  const paymentDeadlineText = (() => {
+    if (!paymentDeadlineSource) {
+      return language === 'gr'
+        ? 'Θα λάβετε τις λεπτομέρειες πληρωμής μέσω email.'
+        : 'You will receive payment details by email.';
+    }
+
+    const deadline = new Date(paymentDeadlineSource);
+    if (isNaN(deadline.getTime())) {
+      return language === 'gr'
+        ? 'Θα λάβετε τις λεπτομέρειες πληρωμής μέσω email.'
+        : 'You will receive payment details by email.';
+    }
+
+    const formattedDeadline = deadline.toLocaleString(locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
+    return language === 'gr'
+      ? `Θα λάβετε τις λεπτομέρειες πληρωμής μέσω email. Η προθεσμία πληρωμής είναι ${formattedDeadline}.`
+      : `You will receive payment details by email. Payment deadline: ${formattedDeadline}.`;
+  })();
 
   const [formData, setFormData] = useState<BookingFormData>({
     fullName: '',
@@ -346,20 +370,28 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={isSubmitting || !formData.shiftId || (event.products && event.products.length > 0 && (formData.products?.reduce((acc, p) => acc + p.quantity, 0) || 0) !== formData.numberOfPeople)}
-                className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-text py-4 text-[11px] font-bold uppercase tracking-[0.22em] text-brand-bg shadow-lg transition-all duration-500 hover:bg-brand-gold disabled:opacity-50 sm:py-5 sm:text-xs sm:tracking-[0.3em]"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-brand-bg/30 border-t-brand-bg rounded-full animate-spin" />
-                    {t('booking.processing')}
-                  </>
-                ) : (
-                  t('booking.confirm')
-                )}
-              </button>
+              <div className="space-y-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !formData.shiftId || (event.products && event.products.length > 0 && (formData.products?.reduce((acc, p) => acc + p.quantity, 0) || 0) !== formData.numberOfPeople)}
+                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-brand-text py-4 text-[11px] font-bold uppercase tracking-[0.22em] text-brand-bg shadow-lg transition-all duration-500 hover:bg-brand-gold disabled:opacity-50 sm:py-5 sm:text-xs sm:tracking-[0.3em]"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-brand-bg/30 border-t-brand-bg rounded-full animate-spin" />
+                      {t('booking.processing')}
+                    </>
+                  ) : (
+                    t('booking.confirm')
+                  )}
+                </button>
+                <div className="mx-auto max-w-xl px-3 pt-1 text-center">
+                  <div className="mx-auto mb-2 h-px w-16 bg-gradient-to-r from-transparent via-brand-gold/45 to-transparent" />
+                  <p className="text-[11.5px] leading-relaxed text-brand-text/58 sm:text-[12px]">
+                    {paymentDeadlineText}
+                  </p>
+                </div>
+              </div>
             </form>
           </div>
         </div>

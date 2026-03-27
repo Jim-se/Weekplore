@@ -287,9 +287,6 @@ export const eventService = {
   },
 
   async updateBookingStatus(bookingIds: number[], status: string) {
-    // This endpoint wasn't specifically created but I'll add it to server.ts later if missing
-    // Actually let's assume it exists or use a generic update
-    // Wait, I should add it to the server!
     const headers = await getAuthHeaders();
     const response = await fetch(buildApiUrl('/api/admin/bookings/status'), {
       method: 'PATCH',
@@ -298,6 +295,18 @@ export const eventService = {
     });
     if (!response.ok) {
       throw new Error(await getErrorMessage(response, 'Failed to update booking status'));
+    }
+  },
+
+  async updateBookingReservationStatus(bookingIds: number[], status: string) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(buildApiUrl('/api/admin/bookings/reservation-status'), {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ bookingIds, status })
+    });
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response, 'Failed to update booking reservation status'));
     }
   },
 

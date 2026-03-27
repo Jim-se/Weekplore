@@ -78,11 +78,23 @@ const shouldDefaultToSendArchiveEmails = (eventDate: string | null | undefined) 
 const isArchivedStatus = (status: string | null | undefined) =>
   status === 'archived' || status === 'canceled' || status === 'cancelled';
 
+const isCanceledBookingStatus = (status: string | null | undefined) =>
+  status === 'canceled' || status === 'cancelled';
+
+const getActiveParticipantBookings = (bookings: any[] = []) =>
+  bookings.filter((booking) => !isCanceledBookingStatus(booking?.status));
+
+const getCanceledParticipantBookings = (bookings: any[] = []) =>
+  bookings.filter((booking) => isCanceledBookingStatus(booking?.status));
+
 const getActiveShifts = (shifts: any[] = []) =>
   shifts.filter((shift) => !isArchivedStatus(shift?.status));
 
 const getShiftBookingCount = (shift: any) =>
-  shift?.bookings?.reduce((sum: number, booking: any) => sum + (booking.number_of_people || 0), 0) || 0;
+  getActiveParticipantBookings(shift?.bookings || []).reduce(
+    (sum: number, booking: any) => sum + (booking.number_of_people || 0),
+    0
+  );
 
 const getEditableEventImages = (event: any) => {
   if (Array.isArray(event?.images) && event.images.length > 0) {
@@ -245,6 +257,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     price: 0,
     event_date: new Date().toISOString().slice(0, 10) + 'T10:00',
     booking_deadline: new Date().toISOString().slice(0, 10) + 'T18:00',
+    payment_deadline: new Date().toISOString().slice(0, 10) + 'T18:00',
     location_name: '',
     location_address: '',
     shifts: [] as any[],
@@ -555,7 +568,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEvent.title || !newEvent.slug || !newEvent.price || !newEvent.event_date || !newEvent.booking_deadline || selectedFiles.length === 0) {
+    if (!newEvent.title || !newEvent.slug || !newEvent.price || !newEvent.event_date || !newEvent.booking_deadline || !newEvent.payment_deadline || selectedFiles.length === 0) {
       setMessage({ type: 'error', text: 'Please fill all required fields and add at least one image.' });
       return;
     }
@@ -581,6 +594,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
           price: newEvent.price,
           event_date: newEvent.event_date,
           booking_deadline: newEvent.booking_deadline,
+          payment_deadline: newEvent.payment_deadline,
           location_name: newEvent.location_name,
           location_address: newEvent.location_address
         },
@@ -599,6 +613,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         price: 0,
         event_date: new Date().toISOString().slice(0, 10) + 'T10:00',
         booking_deadline: new Date().toISOString().slice(0, 10) + 'T18:00',
+        payment_deadline: new Date().toISOString().slice(0, 10) + 'T18:00',
         location_name: '',
         location_address: '',
         shifts: [],
@@ -705,6 +720,31 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
       setEvents(updatedEvents);
 
       // Update viewingParticipantsShift if open
+      if (viewingParticipantsShift) {
+        for (const e of updatedEvents) {
+          const s = e.shifts.find((sh: any) => sh.id === viewingParticipantsShift.id);
+          if (s) {
+            setViewingParticipantsShift({ ...s, eventTitle: e.title });
+            break;
+          }
+        }
+      }
+
+      setSelectedBookings([]);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message });
+    }
+  };
+
+  const handleMarkAsCanceled = async () => {
+    if (selectedBookings.length === 0) return;
+    try {
+      await eventService.updateBookingReservationStatus(selectedBookings, 'canceled');
+      setMessage({ type: 'success', text: `Marked ${selectedBookings.length} bookings as canceled.` });
+
+      const updatedEvents = await eventService.getAdminEvents();
+      setEvents(updatedEvents);
+
       if (viewingParticipantsShift) {
         for (const e of updatedEvents) {
           const s = e.shifts.find((sh: any) => sh.id === viewingParticipantsShift.id);
@@ -1029,7 +1069,10 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
       .filter((shift: any) => isArchivedStatus(shift.status))
       .map((shift: any) => ({ ...shift, eventTitle: event.title, eventId: event.id }))
   );
-  const viewingParticipantsProductTotals = getShiftProductTotals(viewingParticipantsShift?.bookings || []);
+  const viewingParticipantBookings = viewingParticipantsShift?.bookings || [];
+  const activeParticipantBookings = getActiveParticipantBookings(viewingParticipantBookings);
+  const canceledParticipantBookings = getCanceledParticipantBookings(viewingParticipantBookings);
+  const viewingParticipantsProductTotals = getShiftProductTotals(activeParticipantBookings);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-brand-gold"></div></div>;
 
@@ -1487,6 +1530,35 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                             if (!e.target.value) return;
                             const date = newEvent.booking_deadline.split('T')[0] || new Date().toISOString().split('T')[0];
                             setNewEvent({ ...newEvent, booking_deadline: `${date}T${e.target.value}` });
+                          }}
+                          className="w-full px-6 py-4 rounded-2xl border border-brand-border focus:border-brand-gold outline-none transition-all"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Payment Deadline *</label>
+                        <input
+                          type="date"
+                          value={newEvent.payment_deadline.split('T')[0]}
+                          onChange={(e) => {
+                            const time = newEvent.payment_deadline.split('T')[1] || '18:00';
+                            setNewEvent({ ...newEvent, payment_deadline: `${e.target.value}T${time}` });
+                          }}
+                          className="w-full px-6 py-4 rounded-2xl border border-brand-border focus:border-brand-gold outline-none transition-all"
+                          required
+                        />
+                      </div>
+                      <div className="col-span-2 sm:col-span-1">
+                        <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Time (24h) *</label>
+                        <input
+                          type="time"
+                          value={newEvent.payment_deadline.split('T')[1]?.slice(0, 5) || '18:00'}
+                          onChange={(e) => {
+                            if (!e.target.value) return;
+                            const date = newEvent.payment_deadline.split('T')[0] || new Date().toISOString().split('T')[0];
+                            setNewEvent({ ...newEvent, payment_deadline: `${date}T${e.target.value}` });
                           }}
                           className="w-full px-6 py-4 rounded-2xl border border-brand-border focus:border-brand-gold outline-none transition-all"
                           required
@@ -2408,6 +2480,34 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                           />
                         </div>
                       </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2 sm:col-span-1">
+                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Payment Deadline</label>
+                          <input
+                            type="date"
+                            defaultValue={getDatePart(editingEvent.payment_deadline || editingEvent.booking_deadline)}
+                            onChange={(e) => {
+                              if (!e.target.value) return;
+                              const time = getTimePart(editingEvent.payment_deadline || editingEvent.booking_deadline, '18:00');
+                              handleUpdateEvent(editingEvent.id, { payment_deadline: `${e.target.value}T${time}` });
+                            }}
+                            className="w-full px-6 py-4 rounded-2xl border border-brand-border outline-none focus:border-brand-gold"
+                          />
+                        </div>
+                        <div className="col-span-2 sm:col-span-1">
+                          <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Time (24h)</label>
+                          <input
+                            type="time"
+                            value={getTimePart(editingEvent.payment_deadline || editingEvent.booking_deadline, '18:00')}
+                            onChange={(e) => {
+                              if (!e.target.value) return;
+                              const date = getDatePart(editingEvent.payment_deadline || editingEvent.booking_deadline) || new Date().toISOString().split('T')[0];
+                              setEditingEvent({ ...editingEvent, payment_deadline: `${date}T${e.target.value}` });
+                            }}
+                            className="w-full px-6 py-4 rounded-2xl border border-brand-border outline-none focus:border-brand-gold"
+                          />
+                        </div>
+                      </div>
                       <div>
                         <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Location Name</label>
                         <input
@@ -2471,7 +2571,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
                   <div className="grid gap-4">
                     {getActiveShifts(editingEvent.shifts).map((shift: any) => {
-                      const totalPeople = shift.bookings?.reduce((sum: number, b: any) => sum + (b.number_of_people || 0), 0) || 0;
+                      const totalPeople = getShiftBookingCount(shift);
 
                       return (
                         <div key={shift.id} className="flex items-center justify-between p-6 bg-brand-bg/30 rounded-2xl border border-brand-border">
@@ -2740,6 +2840,12 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                         {formatSafeDate(viewingArchivedEvent.booking_deadline)} {formatSafeTime(viewingArchivedEvent.booking_deadline)}
                       </p>
                     </div>
+                    <div className="rounded-2xl border border-brand-border bg-brand-bg/20 p-5">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Payment Deadline</p>
+                      <p className="mt-2 text-sm font-bold">
+                        {formatSafeDate(viewingArchivedEvent.payment_deadline || viewingArchivedEvent.booking_deadline)} {formatSafeTime(viewingArchivedEvent.payment_deadline || viewingArchivedEvent.booking_deadline)}
+                      </p>
+                    </div>
                     <div className="rounded-2xl border border-brand-border bg-brand-bg/20 p-5 sm:col-span-2">
                       <p className="text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Location</p>
                       <p className="mt-2 text-sm font-bold">{viewingArchivedEvent.location_name || 'Not set'}</p>
@@ -2918,13 +3024,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-10">
-                {viewingParticipantsShift.bookings?.length > 0 ? (
-                  <div className="space-y-6">
+                {activeParticipantBookings.length > 0 || canceledParticipantBookings.length > 0 ? (
+                  <div className="space-y-8">
                     <div className="flex justify-between items-center mb-4">
                       <div className="text-xs font-bold text-brand-text/40 uppercase tracking-widest">
                         {selectedBookings.length} Selected
                       </div>
-                      <div className="flex gap-3">
+                      <div className="flex flex-wrap gap-3 justify-end">
                         <button
                           onClick={handleMarkAsPending}
                           disabled={selectedBookings.length === 0}
@@ -2941,103 +3047,129 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                           <Check className="w-4 h-4" />
                           Mark as Paid
                         </button>
+                        <button
+                          onClick={handleMarkAsCanceled}
+                          disabled={selectedBookings.length === 0}
+                          className="px-6 py-3 bg-red-600 text-white text-[10px] uppercase font-bold tracking-widest rounded-xl hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Mark as Canceled
+                        </button>
                       </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse">
-                        <thead>
-                          <tr className="border-b border-brand-border">
-                            <th className="p-4 text-left">
-                              <input
-                                type="checkbox"
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedBookings(viewingParticipantsShift.bookings.map((b: any) => b.id));
-                                  } else {
-                                    setSelectedBookings([]);
-                                  }
-                                }}
-                                checked={selectedBookings.length === viewingParticipantsShift.bookings.length && viewingParticipantsShift.bookings.length > 0}
-                                className="w-4 h-4 rounded border-brand-border text-brand-gold focus:ring-brand-gold"
-                              />
-                            </th>
-                            <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Name</th>
-                            <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Contact</th>
-                            <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">People</th>
-                            <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Products</th>
-                            <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {viewingParticipantsShift.bookings.map((booking: any) => {
-                            const productSelections = getBookingProductSelections(booking);
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <h3 className="text-sm font-bold">Active Reservations</h3>
+                          <p className="mt-1 text-xs text-brand-text/50">These guests still count toward the shift capacity.</p>
+                        </div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-brand-text/40">
+                          {activeParticipantBookings.reduce((sum, booking) => sum + (booking.number_of_people || 0), 0)} Guests
+                        </div>
+                      </div>
 
-                            return (
-                              <tr key={booking.id} className="border-b border-brand-border/50 hover:bg-brand-bg/10 transition-all">
-                                <td className="p-4">
+                      {activeParticipantBookings.length > 0 ? (
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b border-brand-border">
+                                <th className="p-4 text-left">
                                   <input
                                     type="checkbox"
-                                    checked={selectedBookings.includes(booking.id)}
-                                    onChange={() => toggleBookingSelection(booking.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedBookings(activeParticipantBookings.map((b: any) => b.id));
+                                      } else {
+                                        setSelectedBookings([]);
+                                      }
+                                    }}
+                                    checked={selectedBookings.length === activeParticipantBookings.length && activeParticipantBookings.length > 0}
                                     className="w-4 h-4 rounded border-brand-border text-brand-gold focus:ring-brand-gold"
                                   />
-                                </td>
-                                <td className="p-4">
-                                  <div className="font-bold text-sm">{booking.full_name}</div>
-                                  <div className="text-[10px] text-brand-text/40">{new Date(booking.created_at).toLocaleDateString()}</div>
-                                </td>
-                                <td className="p-4">
-                                  <div className="flex flex-col gap-1">
-                                    <div className="flex items-center gap-2 text-xs text-brand-text/60">
-                                      <Mail className="w-3 h-3" /> {booking.email}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs text-brand-text/60">
-                                      <Phone className="w-3 h-3" /> {booking.phone}
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="p-4 text-center">
-                                  <span className="inline-flex items-center justify-center w-8 h-8 bg-brand-bg rounded-full text-xs font-bold">
-                                    {booking.number_of_people}
-                                  </span>
-                                </td>
-                                <td className="p-4 min-w-[220px]">
-                                  {productSelections.length > 0 ? (
-                                    <div className="flex flex-wrap gap-2">
-                                      {productSelections.map((selection) => (
-                                        <span
-                                          key={selection.key}
-                                          className="inline-flex items-center rounded-full bg-brand-gold/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-gold"
-                                        >
-                                          {selection.label}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <span className="text-xs text-brand-text/40">No products</span>
-                                  )}
-                                </td>
-                                <td className="p-4 text-center">
-                                  <span className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full ${booking.payment_status === 'paid'
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-amber-100 text-amber-700'
-                                    }`}>
-                                    {booking.payment_status || 'Pending'}
-                                  </span>
-                                </td>
+                                </th>
+                                <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Name</th>
+                                <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Contact</th>
+                                <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">People</th>
+                                <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Products</th>
+                                <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Status</th>
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                            </thead>
+                            <tbody>
+                              {activeParticipantBookings.map((booking: any) => {
+                                const productSelections = getBookingProductSelections(booking);
+
+                                return (
+                                  <tr key={booking.id} className="border-b border-brand-border/50 hover:bg-brand-bg/10 transition-all">
+                                    <td className="p-4">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedBookings.includes(booking.id)}
+                                        onChange={() => toggleBookingSelection(booking.id)}
+                                        className="w-4 h-4 rounded border-brand-border text-brand-gold focus:ring-brand-gold"
+                                      />
+                                    </td>
+                                    <td className="p-4">
+                                      <div className="font-bold text-sm">{booking.full_name}</div>
+                                      <div className="text-[10px] text-brand-text/40">{new Date(booking.created_at).toLocaleDateString()}</div>
+                                    </td>
+                                    <td className="p-4">
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 text-xs text-brand-text/60">
+                                          <Mail className="w-3 h-3" /> {booking.email}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-brand-text/60">
+                                          <Phone className="w-3 h-3" /> {booking.phone}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                      <span className="inline-flex items-center justify-center w-8 h-8 bg-brand-bg rounded-full text-xs font-bold">
+                                        {booking.number_of_people}
+                                      </span>
+                                    </td>
+                                    <td className="p-4 min-w-[220px]">
+                                      {productSelections.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                          {productSelections.map((selection) => (
+                                            <span
+                                              key={selection.key}
+                                              className="inline-flex items-center rounded-full bg-brand-gold/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-brand-gold"
+                                            >
+                                              {selection.label}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-brand-text/40">No products</span>
+                                      )}
+                                    </td>
+                                    <td className="p-4 text-center">
+                                      <span className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full ${booking.payment_status === 'paid'
+                                        ? 'bg-emerald-100 text-emerald-700'
+                                        : 'bg-amber-100 text-amber-700'
+                                        }`}>
+                                        {booking.payment_status || 'Pending'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="rounded-[24px] border border-dashed border-brand-border bg-brand-bg/10 p-6 text-sm text-brand-text/40">
+                          No active reservations in this shift right now.
+                        </div>
+                      )}
                     </div>
 
                     <div className="rounded-[24px] border border-brand-border bg-brand-bg/20 p-5">
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <h3 className="text-sm font-bold">Product Totals</h3>
-                          <p className="mt-1 text-xs text-brand-text/50">Use this summary to see what needs to be ordered for this shift.</p>
+                          <p className="mt-1 text-xs text-brand-text/50">Use this summary to see what needs to be ordered for this shift. Canceled reservations are excluded.</p>
                         </div>
                         <div className="text-[10px] font-bold uppercase tracking-widest text-brand-text/40">
                           {viewingParticipantsProductTotals.reduce((sum, item) => sum + item.quantity, 0)} Total Items
@@ -3056,9 +3188,95 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                           ))}
                         </div>
                       ) : (
-                        <p className="mt-4 text-sm text-brand-text/40">No product selections yet for this shift.</p>
+                        <p className="mt-4 text-sm text-brand-text/40">No active product selections yet for this shift.</p>
                       )}
                     </div>
+
+                    {canceledParticipantBookings.length > 0 && (
+                      <div className="space-y-4 border-t border-brand-border/60 pt-6">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <h3 className="text-sm font-bold text-red-600">Canceled Reservations</h3>
+                            <p className="mt-1 text-xs text-brand-text/50">These bookings are kept for history and shown separately from active guests.</p>
+                          </div>
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-brand-text/40">
+                            {canceledParticipantBookings.length} Bookings
+                          </div>
+                        </div>
+
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse">
+                            <thead>
+                              <tr className="border-b border-brand-border">
+                                <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Name</th>
+                                <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Contact</th>
+                                <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">People</th>
+                                <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Products</th>
+                                <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {canceledParticipantBookings.map((booking: any) => {
+                                const productSelections = getBookingProductSelections(booking);
+
+                                return (
+                                  <tr key={booking.id} className="border-b border-brand-border/50 bg-red-50/40">
+                                    <td className="p-4">
+                                      <div className="font-bold text-sm">{booking.full_name}</div>
+                                      <div className="text-[10px] text-brand-text/40">{new Date(booking.created_at).toLocaleDateString()}</div>
+                                    </td>
+                                    <td className="p-4">
+                                      <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2 text-xs text-brand-text/60">
+                                          <Mail className="w-3 h-3" /> {booking.email}
+                                        </div>
+                                        <div className="flex items-center gap-2 text-xs text-brand-text/60">
+                                          <Phone className="w-3 h-3" /> {booking.phone}
+                                        </div>
+                                      </div>
+                                    </td>
+                                    <td className="p-4 text-center">
+                                      <span className="inline-flex items-center justify-center w-8 h-8 bg-white rounded-full text-xs font-bold border border-red-100">
+                                        {booking.number_of_people}
+                                      </span>
+                                    </td>
+                                    <td className="p-4 min-w-[220px]">
+                                      {productSelections.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                          {productSelections.map((selection) => (
+                                            <span
+                                              key={selection.key}
+                                              className="inline-flex items-center rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-red-600 border border-red-100"
+                                            >
+                                              {selection.label}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <span className="text-xs text-brand-text/40">No products</span>
+                                      )}
+                                    </td>
+                                    <td className="p-4 text-center">
+                                      <div className="flex flex-col items-center gap-2">
+                                        <span className="text-[9px] uppercase font-bold px-3 py-1 rounded-full bg-red-100 text-red-700">
+                                          Canceled
+                                        </span>
+                                        <span className={`text-[9px] uppercase font-bold px-3 py-1 rounded-full ${booking.payment_status === 'paid'
+                                          ? 'bg-emerald-100 text-emerald-700'
+                                          : 'bg-amber-100 text-amber-700'
+                                          }`}>
+                                          {booking.payment_status || 'Pending'}
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="h-64 flex flex-col items-center justify-center text-brand-text/30">

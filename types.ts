@@ -56,6 +56,7 @@ export interface WeekploreEvent {
   price: number;
   event_date: string;
   booking_deadline: string;
+  payment_deadline?: string | null;
   location_name: string;
   location_address: string;
   cover_image_url: string;
