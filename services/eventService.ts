@@ -60,6 +60,7 @@ export const eventService = {
         eventId,
         formData: {
           ...formData,
+          postalCode: formData.postalCode.replace(/\s/g, ''),
           email_language: getBrowserEmailLanguage()
         }
       })

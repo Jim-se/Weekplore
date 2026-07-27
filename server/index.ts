@@ -1259,6 +1259,8 @@ app.post('/api/bookings', bookingRateLimit, async (req, res) => {
     const normalizedFullName = normalizeSingleLineText(formData?.fullName, 120);
     const normalizedEmail = normalizeEmail(formData?.email);
     const normalizedPhone = normalizePhone(formData?.phone);
+    const normalizedPostalCodeInput = normalizeSingleLineText(formData?.postalCode, 20);
+    const normalizedPostalCode = normalizedPostalCodeInput.replace(/\s/g, '');
     const normalizedEmailLanguage = normalizeEmailLanguage(formData?.email_language);
     const selectedProducts = Array.isArray(formData?.products) ? formData.products : [];
     const bookingAttemptId = crypto.randomUUID();
@@ -1279,9 +1281,26 @@ app.post('/api/bookings', bookingRateLimit, async (req, res) => {
         normalizedShiftId < 1 ||
         !normalizedFullName ||
         !normalizedEmail ||
-        !normalizedPhone
+        !normalizedPhone ||
+        !normalizedPostalCode
     ) {
         return res.status(400).json({ error: 'Missing required booking information' });
+    }
+
+    if (/[^0-9\s]/.test(normalizedPostalCodeInput)) {
+        return res.status(400).json({
+            error: normalizedEmailLanguage === 'el'
+                ? 'Χρησιμοποιήστε μόνο αριθμούς για τον Τ.Κ.'
+                : 'Use numbers only for the postal code.'
+        });
+    }
+
+    if (!/^[0-9]{5}$/.test(normalizedPostalCode)) {
+        return res.status(400).json({
+            error: normalizedEmailLanguage === 'el'
+                ? 'Ο Τ.Κ. πρέπει να αποτελείται από 5 ψηφία.'
+                : 'Postal code must contain 5 digits.'
+        });
     }
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
@@ -1463,6 +1482,7 @@ app.post('/api/bookings', bookingRateLimit, async (req, res) => {
                     full_name: normalizedFullName,
                     email: normalizedEmail,
                     phone: normalizedPhone,
+                    postal_code: normalizedPostalCode,
                     number_of_people: normalizedPeople,
                     status: 'pending',
                     payment_status: 'pending',

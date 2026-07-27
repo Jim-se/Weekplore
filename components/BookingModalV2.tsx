@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BookingFormData, WeekploreEvent } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
 import {
@@ -52,12 +52,16 @@ const BookingModalV2: React.FC<BookingModalProps> = ({ event, onClose, onSubmit 
     fullName: '',
     phone: '',
     email: '',
+    postalCode: '',
     shiftId: availableShifts[0]?.id || bookableShifts[0]?.id || 0,
     numberOfPeople: 1,
     products: [],
   });
   const [personSelections, setPersonSelections] = useState<Record<string, string>[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [postalCodeTouched, setPostalCodeTouched] = useState(false);
+  const [postalCodeError, setPostalCodeError] = useState('');
+  const postalCodeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -126,13 +130,56 @@ const BookingModalV2: React.FC<BookingModalProps> = ({ event, onClose, onSubmit 
     )
   );
 
+  const validatePostalCode = (value: string) => {
+    if (!value.trim()) {
+      return t('booking.postalCodeRequired');
+    }
+
+    if (/[^0-9\s]/.test(value)) {
+      return t('booking.postalCodeNumbersOnly');
+    }
+
+    return value.replace(/\s/g, '').length === 5
+      ? ''
+      : t('booking.postalCodeFiveDigits');
+  };
+
+  const handlePostalCodeChange = (value: string) => {
+    const numericValue = value
+      .replace(/[^0-9\s]/g, '')
+      .replace(/\s+/g, ' ')
+      .slice(0, 6);
+    const containsRejectedCharacters = numericValue !== value;
+
+    setFormData((prev) => ({ ...prev, postalCode: numericValue }));
+
+    if (containsRejectedCharacters) {
+      setPostalCodeError(t('booking.postalCodeNumbersOnly'));
+    } else if (postalCodeTouched) {
+      setPostalCodeError(validatePostalCode(numericValue));
+    } else {
+      setPostalCodeError('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
 
+    const nextPostalCodeError = validatePostalCode(formData.postalCode);
+    if (nextPostalCodeError) {
+      setPostalCodeTouched(true);
+      setPostalCodeError(nextPostalCodeError);
+      postalCodeInputRef.current?.focus();
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({
+        ...formData,
+        postalCode: formData.postalCode.replace(/\s/g, ''),
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -264,6 +311,53 @@ const BookingModalV2: React.FC<BookingModalProps> = ({ event, onClose, onSubmit 
                       />
                       <div className="absolute bottom-0 left-0 h-0.5 w-0 bg-brand-gold transition-all group-focus-within:w-full" />
                     </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="booking-postal-code"
+                      className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text/55"
+                    >
+                      {t('booking.postalCode')}
+                    </label>
+                    <div className="group relative">
+                      <input
+                        ref={postalCodeInputRef}
+                        required
+                        id="booking-postal-code"
+                        name="postalCode"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="postal-code"
+                        maxLength={6}
+                        className={`serif-font w-full border-b bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 sm:text-lg ${
+                          postalCodeError
+                            ? 'border-red-500 focus:border-red-600'
+                            : 'border-brand-border focus:border-brand-gold'
+                        }`}
+                        placeholder={t('booking.postalCodePlaceholder')}
+                        value={formData.postalCode}
+                        aria-invalid={Boolean(postalCodeError)}
+                        aria-describedby="booking-postal-code-message"
+                        onChange={(e) => handlePostalCodeChange(e.target.value)}
+                        onBlur={(e) => {
+                          setPostalCodeTouched(true);
+                          setPostalCodeError(validatePostalCode(e.currentTarget.value));
+                        }}
+                      />
+                      <div
+                        className={`absolute bottom-0 left-0 h-0.5 w-0 transition-all group-focus-within:w-full ${
+                          postalCodeError ? 'bg-red-600' : 'bg-brand-gold'
+                        }`}
+                      />
+                    </div>
+                    <p
+                      id="booking-postal-code-message"
+                      className={`mt-2 text-xs ${postalCodeError ? 'font-medium text-red-700' : 'text-brand-text/50'}`}
+                      role={postalCodeError ? 'alert' : undefined}
+                    >
+                      {postalCodeError || t('booking.postalCodeHelp')}
+                    </p>
                   </div>
 
                   <div className="pt-4">

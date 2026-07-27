@@ -54,6 +54,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
     fullName: '',
     phone: '',
     email: '',
+    postalCode: '',
     shiftId: availableShifts[0]?.id || bookableShifts[0]?.id || 0,
     numberOfPeople: 1,
     products: []
@@ -255,6 +256,38 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                       />
                       <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-gold transition-all group-focus-within:w-full" />
                     </div>
+                  </div>
+
+                  <div className="relative group">
+                    <label
+                      htmlFor="legacy-booking-postal-code"
+                      className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.2em] text-brand-text/55"
+                    >
+                      {t('booking.postalCode')}
+                    </label>
+                    <input
+                      required
+                      id="legacy-booking-postal-code"
+                      name="postalCode"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      maxLength={6}
+                      pattern="[0-9]{3}\s?[0-9]{2}"
+                      className="w-full border-b border-brand-border bg-transparent py-3 text-base outline-none transition-all placeholder:text-brand-text/20 focus:border-brand-gold sm:text-lg serif-font"
+                      placeholder={t('booking.postalCodePlaceholder')}
+                      value={formData.postalCode}
+                      onChange={(e) => {
+                        const numericValue = e.target.value
+                          .replace(/[^0-9\s]/g, '')
+                          .replace(/\s+/g, ' ')
+                          .slice(0, 6);
+                        setFormData((prev) => ({ ...prev, postalCode: numericValue }));
+                      }}
+                      onInvalid={(e) => e.currentTarget.setCustomValidity(t('booking.postalCodeFiveDigits'))}
+                      onInput={(e) => e.currentTarget.setCustomValidity('')}
+                    />
+                    <div className="absolute bottom-0 left-0 w-0 h-0.5 bg-brand-gold transition-all group-focus-within:w-full" />
                   </div>
 
                   <div className="pt-4">

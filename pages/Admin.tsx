@@ -3121,6 +3121,11 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                                         <div className="flex items-center gap-2 text-xs text-brand-text/60">
                                           <Phone className="w-3 h-3" /> {booking.phone}
                                         </div>
+                                        {booking.postal_code && (
+                                          <div className="flex items-center gap-2 text-xs text-brand-text/60">
+                                            <MapPin className="w-3 h-3" /> Τ.Κ. {booking.postal_code}
+                                          </div>
+                                        )}
                                       </div>
                                     </td>
                                     <td className="p-4 text-center">
@@ -3233,6 +3238,11 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                                         <div className="flex items-center gap-2 text-xs text-brand-text/60">
                                           <Phone className="w-3 h-3" /> {booking.phone}
                                         </div>
+                                        {booking.postal_code && (
+                                          <div className="flex items-center gap-2 text-xs text-brand-text/60">
+                                            <MapPin className="w-3 h-3" /> Τ.Κ. {booking.postal_code}
+                                          </div>
+                                        )}
                                       </div>
                                     </td>
                                     <td className="p-4 text-center">

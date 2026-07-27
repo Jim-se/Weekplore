@@ -120,6 +120,7 @@ export interface BookingFormData {
   fullName: string;
   phone: string;
   email: string;
+  postalCode: string;
   email_language?: 'el' | 'en';
   shiftId: number;
   numberOfPeople: number;
