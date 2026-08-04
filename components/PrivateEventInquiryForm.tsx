@@ -307,9 +307,6 @@ const PrivateEventInquiryForm: React.FC<PrivateEventInquiryFormProps> = ({ event
                             </div>
 
                             <div className="pt-4 flex flex-col gap-3">
-                                <p className="text-center text-[10px] text-brand-text/60 italic tracking-wider">
-                                    {t('inquiry.contactSoon')}
-                                </p>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}

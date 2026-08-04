@@ -10,10 +10,17 @@ interface HomeProps {
 }
 
 const HERO_IMAGES = [
-  "/images/hero-1.jpg",
-  "/images/hero-2.jpg",
-  "/images/hero-3.jpg",
-  "/images/Screenshot 2026-03-15 214611.png"
+  "/images/hero-photo-1.jpg",
+  "/images/hero-photo-2.jpg",
+  "/images/hero-photo-3.jpg",
+  "/images/hero-photo-4.jpg",
+  "/images/hero-photo-5.jpg",
+  "/images/hero-photo-6.jpg",
+  "/images/hero-photo-7.jpg",
+  "/images/hero-photo-8.jpg",
+  "/images/hero-photo-9.jpg",
+  "/images/hero-photo-10.jpg",
+  "/images/hero-photo-11.jpg",
 ];
 
 const PEOPLE_IMAGES = [
@@ -120,7 +127,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               </div>
               <h1 className="home-hero-title mb-6 text-4xl font-bold leading-[0.92] tracking-[-0.04em] text-brand-text serif-font sm:mb-8 sm:text-6xl md:text-[78px] lg:text-[88px] xl:text-[96px]">
                 {t('home.heroTitle1')} <br />
-                <span className="italic text-brand-terracotta">{t('home.heroTitle2')}</span>
+                <span className="italic text-[#c6a046]">{t('home.heroTitle2')}</span>
               </h1>
               <p className="mb-8 max-w-xl text-base font-light leading-relaxed opacity-80 sm:mb-10 sm:text-lg md:max-w-lg md:text-xl whitespace-pre-line">
                 {t('home.heroDesc')}
