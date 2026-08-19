@@ -87,6 +87,16 @@ const getActiveParticipantBookings = (bookings: any[] = []) =>
 const getCanceledParticipantBookings = (bookings: any[] = []) =>
   bookings.filter((booking) => isCanceledBookingStatus(booking?.status));
 
+const formatPostalCode = (value: unknown) => {
+  const postalCode = String(value ?? '').trim();
+  if (!postalCode) return '—';
+
+  const digits = postalCode.replace(/\s+/g, '');
+  return /^\d{5}$/.test(digits)
+    ? `${digits.slice(0, 3)} ${digits.slice(3)}`
+    : postalCode;
+};
+
 const getActiveShifts = (shifts: any[] = []) =>
   shifts.filter((shift) => !isArchivedStatus(shift?.status));
 
@@ -3071,7 +3081,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
                       {activeParticipantBookings.length > 0 ? (
                         <div className="overflow-x-auto">
-                          <table className="w-full border-collapse">
+                          <table className="w-full min-w-[1040px] border-collapse">
                             <thead>
                               <tr className="border-b border-brand-border">
                                 <th className="p-4 text-left">
@@ -3090,6 +3100,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                                 </th>
                                 <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Name</th>
                                 <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Contact</th>
+                                <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Postal code</th>
                                 <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">People</th>
                                 <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Products</th>
                                 <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Status</th>
@@ -3121,11 +3132,12 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                                         <div className="flex items-center gap-2 text-xs text-brand-text/60">
                                           <Phone className="w-3 h-3" /> {booking.phone}
                                         </div>
-                                        {booking.postal_code && (
-                                          <div className="flex items-center gap-2 text-xs text-brand-text/60">
-                                            <MapPin className="w-3 h-3" /> Τ.Κ. {booking.postal_code}
-                                          </div>
-                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-4">
+                                      <div className="flex items-center gap-2 whitespace-nowrap text-xs font-medium text-brand-text/70">
+                                        <MapPin aria-hidden="true" className="w-3 h-3 shrink-0" />
+                                        {formatPostalCode(booking.postal_code)}
                                       </div>
                                     </td>
                                     <td className="p-4 text-center">
@@ -3210,11 +3222,12 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                         </div>
 
                         <div className="overflow-x-auto">
-                          <table className="w-full border-collapse">
+                          <table className="w-full min-w-[960px] border-collapse">
                             <thead>
                               <tr className="border-b border-brand-border">
                                 <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Name</th>
                                 <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Contact</th>
+                                <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Postal code</th>
                                 <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">People</th>
                                 <th className="p-4 text-left text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Products</th>
                                 <th className="p-4 text-center text-[10px] uppercase font-bold tracking-widest text-brand-text/40">Status</th>
@@ -3238,11 +3251,12 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                                         <div className="flex items-center gap-2 text-xs text-brand-text/60">
                                           <Phone className="w-3 h-3" /> {booking.phone}
                                         </div>
-                                        {booking.postal_code && (
-                                          <div className="flex items-center gap-2 text-xs text-brand-text/60">
-                                            <MapPin className="w-3 h-3" /> Τ.Κ. {booking.postal_code}
-                                          </div>
-                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="p-4">
+                                      <div className="flex items-center gap-2 whitespace-nowrap text-xs font-medium text-brand-text/70">
+                                        <MapPin aria-hidden="true" className="w-3 h-3 shrink-0" />
+                                        {formatPostalCode(booking.postal_code)}
                                       </div>
                                     </td>
                                     <td className="p-4 text-center">
