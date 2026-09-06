@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import sanitizeHtml from 'sanitize-html';
 
 dotenv.config();
 
@@ -178,6 +179,37 @@ const normalizeMultilineText = (value: unknown, maxLength = 4000) =>
         ? sanitizeStringInput(value, { maxLength, preserveNewlines: true })
         : '';
 
+const HTML_TAG_PATTERN = /<\/?[a-z][^>]*>/i;
+
+const sanitizeEventDescription = (value: unknown) => {
+    const normalized = normalizeMultilineText(value, 10000);
+    if (!normalized || !HTML_TAG_PATTERN.test(normalized)) {
+        return normalized;
+    }
+
+    return sanitizeHtml(normalized, {
+        allowedTags: ['p', 'br', 'strong', 'em', 'span'],
+        allowedAttributes: {
+            span: ['style'],
+        },
+        allowedStyles: {
+            span: {
+                color: [
+                    /^#(?:111111|4a3b2e)$/i,
+                    /^rgb\(\s*(?:17\s*,\s*17\s*,\s*17|74\s*,\s*59\s*,\s*46)\s*\)$/i,
+                ],
+                'font-family': [
+                    /^Inter(?:\s*,\s*sans-serif)?$/i,
+                    /^(?:'Instrument Serif'|"Instrument Serif"|Instrument Serif)(?:\s*,\s*serif)?$/i,
+                ],
+            },
+        },
+        allowedSchemes: [],
+        allowProtocolRelative: false,
+        enforceHtmlBoundary: true,
+    }).trim();
+};
+
 const escapeHtml = (value: string) =>
     value
         .replace(/&/g, '&amp;')
@@ -271,6 +303,7 @@ const attachProductCategoryData = (event: any) => {
 
     return {
         ...event,
+        full_description: sanitizeEventDescription(event?.full_description),
         product_categories: productCategories,
         products: flattenProductCategories(productCategories),
     };
@@ -1927,7 +1960,7 @@ app.post('/api/admin/events', requireAdmin, async (req, res) => {
             return res.status(400).json({ error: 'At least one shift is required to create an event.' });
         }
 
-        const safeEventData = {
+        const safeEventData: Record<string, unknown> = {
             ...pickDefined(eventData || {}, [
                 'title',
                 'slug',
@@ -1950,6 +1983,9 @@ app.post('/api/admin/events', requireAdmin, async (req, res) => {
             is_hidden: Boolean(eventData?.is_hidden),
             status: isNonEmptyString(eventData?.status) ? eventData.status : 'active',
         };
+
+        safeEventData.short_description = normalizeSingleLineText(safeEventData.short_description, 500);
+        safeEventData.full_description = sanitizeEventDescription(safeEventData.full_description);
 
         const { data: event, error: eventError } = await supabase
             .from('events')
@@ -2059,6 +2095,14 @@ app.put('/api/admin/events/:id', requireAdmin, async (req, res) => {
 
         if (Object.keys(safeEventData).length === 0) {
             return res.status(400).json({ error: 'No valid event fields provided.' });
+        }
+
+        if (safeEventData.short_description !== undefined) {
+            safeEventData.short_description = normalizeSingleLineText(safeEventData.short_description, 500);
+        }
+
+        if (safeEventData.full_description !== undefined) {
+            safeEventData.full_description = sanitizeEventDescription(safeEventData.full_description);
         }
 
         if (safeEventData.status !== undefined) {

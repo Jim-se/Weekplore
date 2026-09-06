@@ -68,6 +68,276 @@
       font-family: serif;
     }
 
+    .rich-text-editor {
+      overflow: hidden;
+      border: 1px solid #e8e2de;
+      border-radius: 1rem;
+      background: #ffffff;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .rich-text-editor:focus-within {
+      border-color: #c0934d;
+      box-shadow: 0 0 0 3px rgb(192 147 77 / 0.12);
+    }
+
+    .rich-text-editor__toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 3.75rem;
+      padding: 0.5rem;
+      border-bottom: 1px solid #e8e2de;
+      background: rgb(255 251 249 / 0.78);
+    }
+
+    .rich-text-editor__button-group {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .rich-text-editor__button,
+    .rich-text-editor__select-control {
+      min-height: 2.75rem;
+      border: 1px solid transparent;
+      border-radius: 0.75rem;
+      color: #4a3b2e;
+      background: transparent;
+    }
+
+    .rich-text-editor__button {
+      display: inline-flex;
+      width: 2.75rem;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .rich-text-editor__button:hover,
+    .rich-text-editor__button[data-active="true"] {
+      border-color: #e8e2de;
+      background: #ffffff;
+    }
+
+    .rich-text-editor__button[data-active="true"] {
+      color: #9b6c27;
+      box-shadow: 0 1px 4px rgb(74 59 46 / 0.08);
+    }
+
+    .rich-text-editor__button:focus-visible,
+    .rich-text-editor__select-control:focus-within {
+      outline: 2px solid #c0934d;
+      outline-offset: 1px;
+    }
+
+    .rich-text-editor__button:active {
+      transform: translateY(1px);
+    }
+
+    .rich-text-editor__button:disabled,
+    .rich-text-editor__select-control:has(select:disabled) {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .rich-text-editor__select-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0 0.45rem 0 0.7rem;
+    }
+
+    .rich-text-editor__select-control:hover {
+      border-color: #e8e2de;
+      background: #ffffff;
+    }
+
+    .rich-text-editor__select-control select {
+      min-height: 2.75rem;
+      max-width: 7.75rem;
+      border: 0;
+      outline: 0;
+      color: inherit;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .rich-text-editor__preview-button {
+      width: auto;
+      gap: 0.4rem;
+      margin-left: auto;
+      padding: 0 0.85rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .rich-text-editor__content {
+      min-height: var(--rich-text-min-height, 150px);
+      padding: 1rem 1.5rem;
+      outline: none;
+      color: #4a3b2e;
+      font-family: serif;
+      font-size: 1rem;
+      line-height: 1.65;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .rich-text-editor__content p,
+    .event-rich-text p {
+      min-height: 1em;
+      margin: 0 0 0.75em;
+    }
+
+    .rich-text-editor__content p:last-child,
+    .event-rich-text p:last-child {
+      margin-bottom: 0;
+    }
+
+    .rich-text-editor__content p.is-editor-empty:first-child::before {
+      float: left;
+      height: 0;
+      color: #9499aa;
+      content: attr(data-placeholder);
+      pointer-events: none;
+      font-family: 'Inter', sans-serif;
+      font-style: normal;
+    }
+
+    .event-rich-text {
+      overflow-wrap: anywhere;
+    }
+
+    .event-rich-text strong {
+      font-weight: 700;
+    }
+
+    .event-rich-text em {
+      padding-bottom: 0.05em;
+      font-style: italic;
+    }
+
+    .rich-text-preview__backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 4000;
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      background: rgb(74 59 46 / 0.66);
+      backdrop-filter: blur(8px);
+    }
+
+    .rich-text-preview__dialog {
+      display: flex;
+      width: min(100%, 50rem);
+      max-height: min(86dvh, 46rem);
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid #e8e2de;
+      border-radius: 1.75rem;
+      background: #ffffff;
+      box-shadow: 0 28px 80px rgb(74 59 46 / 0.26);
+    }
+
+    .rich-text-preview__header {
+      display: flex;
+      min-height: 4.5rem;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.75rem 1rem 0.75rem 1.5rem;
+      border-bottom: 1px solid #e8e2de;
+    }
+
+    .rich-text-preview__header h2 {
+      margin: 0;
+      color: #4a3b2e;
+      font-family: 'Instrument Serif', serif;
+      font-size: 1.65rem;
+      line-height: 1.1;
+    }
+
+    .rich-text-preview__close {
+      display: inline-flex;
+      width: 2.75rem;
+      height: 2.75rem;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #e8e2de;
+      border-radius: 0.85rem;
+      color: #4a3b2e;
+      background: #fffbf9;
+      cursor: pointer;
+    }
+
+    .rich-text-preview__close:hover {
+      border-color: #c0934d;
+      color: #9b6c27;
+    }
+
+    .rich-text-preview__close:focus-visible {
+      outline: 2px solid #c0934d;
+      outline-offset: 2px;
+    }
+
+    .rich-text-preview__body {
+      min-height: 14rem;
+      padding: 2.5rem;
+      overflow-y: auto;
+      background: #fffbf9;
+    }
+
+    .rich-text-preview__empty {
+      margin: 0;
+      color: rgb(74 59 46 / 0.5);
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 520px) {
+      .rich-text-editor__toolbar {
+        gap: 0.35rem;
+      }
+
+      .rich-text-editor__select-control {
+        flex: 1 1 8.5rem;
+      }
+
+      .rich-text-editor__select-control select {
+        width: 100%;
+        max-width: none;
+      }
+
+      .rich-text-editor__content {
+        padding: 1rem;
+      }
+
+      .rich-text-editor__preview-button {
+        flex: 1 1 100%;
+        justify-content: center;
+        margin-left: 0;
+      }
+
+      .rich-text-preview__backdrop {
+        align-items: end;
+        padding: 0.75rem;
+      }
+
+      .rich-text-preview__dialog {
+        max-height: 88dvh;
+        border-radius: 1.5rem;
+      }
+
+      .rich-text-preview__body {
+        min-height: 12rem;
+        padding: 1.5rem 1.25rem 2rem;
+      }
+    }
+
     .bg-texture {
       background-image: url("https://www.transparenttextures.com/patterns/sandpaper.png");
       opacity: 0.03;
@@ -126,7 +396,7 @@
   }
 }
 </script>
-  <script type="module" crossorigin src="/assets/index-BtJbioU6.js"></script>
+  <script type="module" crossorigin src="/assets/index-DsBJWkH6.js"></script>
 </head>
 
 <body>

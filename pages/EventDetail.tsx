@@ -7,29 +7,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, MapPin, Calendar, Clock } from 'lucide-react';
 import { eventService } from '../services/eventService';
 import { useLanguage } from '../lib/LanguageContext';
+import RichTextContent from '../components/RichTextContent';
 
 interface EventDetailProps {
   slug: string;
   onNavigate: (page: string) => void;
 }
-
-const renderDescriptionWithOriginalNumerals = (text: string) => {
-  const parts = text.split(/(\d+(?:[.,:/-]\d+)*%?)/g);
-
-  return parts.map((part, index) => {
-    if (!part) return null;
-
-    if (/^\d+(?:[.,:/-]\d+)*%?$/.test(part)) {
-      return (
-        <span key={`num-${index}`} className="serif-font">
-          {part}
-        </span>
-      );
-    }
-
-    return <React.Fragment key={`text-${index}`}>{part}</React.Fragment>;
-  });
-};
 
 const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
   const { language, t } = useLanguage();
@@ -256,9 +239,10 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
             {/* Left Column: Description & Details */}
             <div className="space-y-10 sm:space-y-16 lg:col-span-7">
               <section>
-                <p className="event-description-font text-xl font-light leading-relaxed text-brand-text/80 italic sm:text-2xl md:text-3xl">
-                  {renderDescriptionWithOriginalNumerals(event.full_description || event.short_description)}
-                </p>
+                <RichTextContent
+                  value={event.full_description || event.short_description}
+                  className="event-description-font text-xl font-light leading-relaxed text-brand-text/80 sm:text-2xl md:text-3xl"
+                />
               </section>
 
               <section className="grid gap-8 border-t border-brand-border pt-8 sm:gap-12 sm:pt-12 md:grid-cols-2">

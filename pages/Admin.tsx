@@ -35,6 +35,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import EmailTemplates from '../components/EmailTemplates';
 import ProductCategoryManager, { ProductDraft } from '../components/ProductCategoryManager';
+import RichTextContent from '../components/RichTextContent';
+import RichTextEditor from '../components/RichTextEditor';
 
 // Helper functions for safe date handling
 const safeToISOString = (dateStr: string | null | undefined) => {
@@ -1601,11 +1603,14 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
                 <div>
                   <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Full Description</label>
-                  <textarea
+                  <RichTextEditor
                     value={newEvent.full_description}
-                    onChange={(e) => setNewEvent({ ...newEvent, full_description: e.target.value })}
-                    className="w-full px-6 py-4 rounded-2xl border border-brand-border focus:border-brand-gold outline-none transition-all min-h-[150px]"
+                    onChange={(fullDescription) => setNewEvent((currentEvent) => ({
+                      ...currentEvent,
+                      full_description: fullDescription,
+                    }))}
                     placeholder="Detailed experience description..."
+                    minHeight={170}
                   />
                 </div>
 
@@ -2542,10 +2547,15 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                     </div>
                     <div>
                       <label className="block text-[10px] uppercase font-bold tracking-widest text-brand-text/40 mb-2">Full Description</label>
-                      <textarea
-                        defaultValue={editingEvent.full_description}
-                        onBlur={(e) => handleUpdateEvent(editingEvent.id, { full_description: e.target.value })}
-                        className="w-full px-6 py-4 rounded-2xl border border-brand-border outline-none focus:border-brand-gold min-h-[120px]"
+                      <RichTextEditor
+                        value={editingEvent.full_description || ''}
+                        onChange={(fullDescription) => setEditingEvent((currentEvent: any) => currentEvent
+                          ? { ...currentEvent, full_description: fullDescription }
+                          : currentEvent)}
+                        onBlur={(fullDescription) => handleUpdateEvent(editingEvent.id, {
+                          full_description: fullDescription,
+                        })}
+                        minHeight={140}
                       />
                     </div>
                   </div>
@@ -2879,7 +2889,10 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                   </div>
                   <div className="rounded-[28px] border border-brand-border p-6">
                     <h3 className="text-[10px] uppercase font-bold tracking-[0.4em] text-brand-gold">Full Description</h3>
-                    <p className="mt-4 text-sm leading-relaxed text-brand-text/80 whitespace-pre-wrap">{viewingArchivedEvent.full_description || 'No full description available.'}</p>
+                    <RichTextContent
+                      value={viewingArchivedEvent.full_description || 'No full description available.'}
+                      className="mt-4 text-sm leading-relaxed text-brand-text/80"
+                    />
                   </div>
                 </section>
 
