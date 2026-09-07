@@ -1869,6 +1869,7 @@ app.get('/api/admin/events', requireAdmin, async (req, res) => {
             .from('events')
             .select(`
         *,
+        images:event_images(*),
         shifts(
           *,
           bookings(
