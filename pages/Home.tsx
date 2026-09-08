@@ -121,10 +121,6 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.8 }}
             >
-              <div className="mb-5 inline-flex items-center gap-2 sm:mb-6">
-                <span className="h-[1px] w-8 bg-brand-gold sm:w-12"></span>
-                <span className="text-[10px] uppercase tracking-[0.5em] text-brand-gold font-bold">{t('home.authentic', { stripAccents: true })}</span>
-              </div>
               <h1 className="home-hero-title mb-6 text-4xl font-bold leading-[0.92] tracking-[-0.04em] text-brand-text serif-font sm:mb-8 sm:text-6xl md:text-[78px] lg:text-[88px] xl:text-[96px]">
                 {t('home.heroTitle1')} <br />
                 <span className="italic text-[#c6a046]">{t('home.heroTitle2')}</span>
