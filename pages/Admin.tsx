@@ -835,14 +835,26 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     }
   };
 
-  const handleEventImageUpload = async (file: File, makeCover: boolean = false) => {
+  const handleEventImageUpload = async (files: File | File[], makeCover: boolean = false) => {
     if (!editingEvent) return;
 
     try {
       setUploading(true);
-      const imageUrl = await eventService.uploadImage(file);
-      await eventService.addEventImage(editingEvent.id, imageUrl, makeCover);
-      setMessage({ type: 'success', text: makeCover ? 'Cover image updated!' : 'Event image added!' });
+      const imageFiles = Array.isArray(files) ? files : [files];
+
+      for (const file of imageFiles) {
+        const imageUrl = await eventService.uploadImage(file);
+        await eventService.addEventImage(editingEvent.id, imageUrl, makeCover);
+      }
+
+      setMessage({
+        type: 'success',
+        text: makeCover
+          ? 'Cover image updated!'
+          : imageFiles.length === 1
+            ? 'Event image added!'
+            : `${imageFiles.length} event images added!`
+      });
       await refreshEditingEvent(editingEvent.id);
     } catch (error: any) {
       setMessage({ type: 'error', text: 'Upload failed: ' + error.message });
@@ -2343,14 +2355,15 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                           type="file"
                           className="hidden"
                           accept="image/*"
+                          multiple
                           onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleEventImageUpload(file, false);
+                            const files = Array.from(e.target.files ?? []);
+                            if (files.length > 0) handleEventImageUpload(files, false);
                             e.target.value = '';
                           }}
                         />
                         <PlusCircle className="h-4 w-4" />
-                        Add Image
+                        {uploading ? 'Uploading...' : 'Add Images'}
                       </label>
                     </div>
                   </div>

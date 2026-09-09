@@ -21,7 +21,7 @@ const translations: Record<Language, Record<string, string>> = {
         'home.authentic': 'Αυθεντικές Εμπειρίες',
         'home.heroTitle1': 'Η εβδομάδα σου,',
         'home.heroTitle2': 'η απόφαση σου.',
-        'home.heroDesc': 'Ψάχνεις πως να διασκεδάσεις αυτή την εβδομάδα;\nΣτη weekplore κάθε εβδομάδα διοργανώνουμε events και δραστηριότητες που κάνουν τις μέρες σου πιο ζωντανές , χαρούμενες , δημιουργικές - όπως τους αξίζει !',
+        'home.heroDesc': 'Ψάχνεις πως να διασκεδάσεις αυτή την εβδομάδα;\nΣτη Weekplore κάθε εβδομάδα διοργανώνουμε events και δραστηριότητες που κάνουν τις μέρες σου πιο ζωντανές , χαρούμενες , δημιουργικές - όπως τους αξίζει !',
         'home.viewEvents': 'Δες τις Εκδηλώσεις',
         'home.ourStory': 'Η Ιστορία μας',
 
@@ -82,7 +82,7 @@ const translations: Record<Language, Record<string, string>> = {
 
         // Events
         'events.title': 'Upcoming Events',
-        'events.desc': 'Ψάχνεις πώς να διασκεδάσεις αυτή την εβδομάδα;\nΣτη weekplore διοργανώνουμε events και δραστηριότητες που κάνουν τις μέρες σου πιο ζωντανές, χαρούμενες, δημιουργικές - όπως τους αξίζει!',
+        'events.desc': 'Ψάχνεις πώς να διασκεδάσεις αυτή την εβδομάδα;\nΣτη Weekplore διοργανώνουμε events και δραστηριότητες που κάνουν τις μέρες σου πιο ζωντανές, χαρούμενες, δημιουργικές - όπως τους αξίζει!',
 
         // Private Events
         'private.title': 'Private Events',
@@ -257,7 +257,7 @@ const translations: Record<Language, Record<string, string>> = {
 
         // Events
         'events.title': 'Upcoming Events',
-        'events.desc': 'Looking for ways to have fun this week?\nAt weekplore, we organize events and activities that make your days more vibrant, joyful, and creative - just as they deserve!',
+        'events.desc': 'Looking for ways to have fun this week?\nAt Weekplore, we organize events and activities that make your days more vibrant, joyful, and creative - just as they deserve!',
 
         // Private Events
         'private.title': 'Private Events',
