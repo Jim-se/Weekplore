@@ -1,6 +1,7 @@
 import { WeekploreEvent, BookingFormData, PrivateEvent } from '../types';
 import { supabase } from '../lib/supabase';
 import { buildApiUrl, getErrorMessage } from './api';
+import { prepareImageForUpload } from './imageCompression';
 
 const getAuthHeaders = async (contentType = true) => {
   const { data: { session } } = await supabase.auth.getSession();
@@ -25,6 +26,13 @@ const getBrowserEmailLanguage = (): 'el' | 'en' => {
   // Fallback to browser language
   const browserLanguage = navigator.language.toLowerCase();
   return browserLanguage.startsWith('el') || browserLanguage.startsWith('gr') ? 'el' : 'en';
+};
+
+export type ImageUploadResult = {
+  url: string;
+  originalSize: number;
+  uploadedSize: number;
+  optimized: boolean;
 };
 
 export const eventService = {
@@ -90,14 +98,14 @@ export const eventService = {
     // But for this step, let's focus on the JSON data.
 
     // To keep it working without complex multer setup yet:
-    const { supabase } = await import('../lib/supabase');
-    const fileExt = file.name.split('.').pop();
+    const uploadFile = await prepareImageForUpload(file);
+    const fileExt = uploadFile.file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `events/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('event-images')
-      .upload(filePath, file);
+      .upload(filePath, uploadFile.file, { contentType: uploadFile.file.type });
 
     if (uploadError) throw uploadError;
 
@@ -105,18 +113,23 @@ export const eventService = {
       .from('event-images')
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    return {
+      url: data.publicUrl,
+      originalSize: file.size,
+      uploadedSize: uploadFile.file.size,
+      optimized: uploadFile.changed,
+    } satisfies ImageUploadResult;
   },
 
   async uploadProductImage(file: File) {
-    const { supabase } = await import('../lib/supabase');
-    const fileExt = file.name.split('.').pop();
+    const uploadFile = await prepareImageForUpload(file);
+    const fileExt = uploadFile.file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `products/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('product_images')
-      .upload(filePath, file);
+      .upload(filePath, uploadFile.file, { contentType: uploadFile.file.type });
 
     if (uploadError) throw uploadError;
 
@@ -124,7 +137,12 @@ export const eventService = {
       .from('product_images')
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    return {
+      url: data.publicUrl,
+      originalSize: file.size,
+      uploadedSize: uploadFile.file.size,
+      optimized: uploadFile.changed,
+    } satisfies ImageUploadResult;
   },
 
   async createEvent(eventData: Partial<WeekploreEvent>, imageUrls: string[], shifts: any[] = [], productCategories: any[] = []) {
@@ -485,14 +503,14 @@ export const eventService = {
 
   async uploadPersonImage(file: File) {
     // Similar to other uploads, keeping in lib/supabase for now unless proxy implemented
-    const { supabase } = await import('../lib/supabase');
-    const fileExt = file.name.split('.').pop();
+    const uploadFile = await prepareImageForUpload(file);
+    const fileExt = uploadFile.file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `people/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('people_images')
-      .upload(filePath, file);
+      .upload(filePath, uploadFile.file, { contentType: uploadFile.file.type });
 
     if (uploadError) throw uploadError;
 
@@ -500,18 +518,23 @@ export const eventService = {
       .from('people_images')
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    return {
+      url: data.publicUrl,
+      originalSize: file.size,
+      uploadedSize: uploadFile.file.size,
+      optimized: uploadFile.changed,
+    } satisfies ImageUploadResult;
   },
 
   async uploadPrivateEventImage(file: File) {
-    const { supabase } = await import('../lib/supabase');
-    const fileExt = file.name.split('.').pop();
+    const uploadFile = await prepareImageForUpload(file);
+    const fileExt = uploadFile.file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `private-events/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('private_event_images')
-      .upload(filePath, file);
+      .upload(filePath, uploadFile.file, { contentType: uploadFile.file.type });
 
     if (uploadError) throw uploadError;
 
@@ -519,7 +542,12 @@ export const eventService = {
       .from('private_event_images')
       .getPublicUrl(filePath);
 
-    return data.publicUrl;
+    return {
+      url: data.publicUrl,
+      originalSize: file.size,
+      uploadedSize: uploadFile.file.size,
+      optimized: uploadFile.changed,
+    } satisfies ImageUploadResult;
   },
 
   async submitPrivateEventInquiry(inquiryData: any) {

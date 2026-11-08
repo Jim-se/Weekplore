@@ -37,6 +37,8 @@ import EmailTemplates from '../components/EmailTemplates';
 import ProductCategoryManager, { ProductDraft } from '../components/ProductCategoryManager';
 import RichTextContent from '../components/RichTextContent';
 import RichTextEditor from '../components/RichTextEditor';
+import ImageCompressionTester from '../components/ImageCompressionTester';
+import { formatBytes } from '../services/imageCompression';
 
 // Helper functions for safe date handling
 const safeToISOString = (dateStr: string | null | undefined) => {
@@ -222,6 +224,28 @@ const createEmptyProductDraft = (): ProductDraft => ({
 
 const createTempCategoryId = () => `temp-category-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const createTempProductId = () => `temp-product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const imageTestEnabled = import.meta.env.VITE_ENABLE_IMAGE_TEST === 'true';
+
+const getImageUploadMessage = (
+  label: string,
+  result: { originalSize: number; uploadedSize: number; optimized: boolean }
+) => result.optimized
+  ? `${label} optimized: ${formatBytes(result.originalSize)} → ${formatBytes(result.uploadedSize)}.`
+  : `${label} uploaded unchanged: ${formatBytes(result.uploadedSize)}.`;
+
+const getImageUploadSummary = (
+  results: { originalSize: number; uploadedSize: number; optimized: boolean }[],
+  unchangedLabel: string
+) => {
+  const optimizedResults = results.filter((result) => result.optimized);
+  if (optimizedResults.length === 0) {
+    return unchangedLabel;
+  }
+
+  const originalSize = optimizedResults.reduce((total, result) => total + result.originalSize, 0);
+  const uploadedSize = optimizedResults.reduce((total, result) => total + result.uploadedSize, 0);
+  return `${optimizedResults.length} image${optimizedResults.length === 1 ? '' : 's'} optimized: ${formatBytes(originalSize)} → ${formatBytes(uploadedSize)}.`;
+};
 
 const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [user, setUser] = useState<any>(null);
@@ -230,7 +254,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'private_events' | 'email_templates' | 'reviews' | 'people' | 'archive'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'private_events' | 'email_templates' | 'reviews' | 'people' | 'archive' | 'compression_test'>('dashboard');
   const [events, setEvents] = useState<any[]>([]);
   const [privateEvents, setPrivateEvents] = useState<PrivateEvent[]>([]);
   const [privateEventInquiries, setPrivateEventInquiries] = useState<any[]>([]);
@@ -437,13 +461,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const handlePersonImageUpload = async (file: File, isEditing: boolean = false) => {
     setUploading(true);
     try {
-      const url = await eventService.uploadPersonImage(file);
+      const uploadResult = await eventService.uploadPersonImage(file);
       if (isEditing && editingPerson) {
-        setEditingPerson({ ...editingPerson, photo_link: url });
+        setEditingPerson({ ...editingPerson, photo_link: uploadResult.url });
       } else {
-        setNewPerson({ ...newPerson, photo_link: url });
+        setNewPerson({ ...newPerson, photo_link: uploadResult.url });
       }
-      setMessage({ type: 'success', text: 'Image uploaded!' });
+      setMessage({ type: 'success', text: getImageUploadMessage('Image', uploadResult) });
     } catch (error: any) {
       setMessage({ type: 'error', text: 'Upload failed: ' + error.message });
     } finally {
@@ -488,17 +512,17 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const handlePrivateEventImageUpload = async (file: File, privateEventId?: string) => {
     try {
       setUploading(true);
-      const imageUrl = await eventService.uploadPrivateEventImage(file);
+      const uploadResult = await eventService.uploadPrivateEventImage(file);
 
       if (privateEventId) {
-        await eventService.updatePrivateEvent(privateEventId, { image_url: imageUrl });
-        setMessage({ type: 'success', text: 'Private event image uploaded!' });
+        await eventService.updatePrivateEvent(privateEventId, { image_url: uploadResult.url });
+        setMessage({ type: 'success', text: getImageUploadMessage('Private event image', uploadResult) });
         fetchPrivateEvents();
         return;
       }
 
-      setNewPrivateEvent((prev) => ({ ...prev, image_url: imageUrl }));
-      setMessage({ type: 'success', text: 'Private event image uploaded!' });
+      setNewPrivateEvent((prev) => ({ ...prev, image_url: uploadResult.url }));
+      setMessage({ type: 'success', text: getImageUploadMessage('Private event image', uploadResult) });
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -592,9 +616,10 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
     setUploading(true);
     try {
       // 1. Upload images
-      const imageUrls = await Promise.all(
+      const uploadResults = await Promise.all(
         selectedFiles.map(file => eventService.uploadImage(file))
       );
+      const imageUrls = uploadResults.map((result) => result.url);
 
       // 2. Create event
       await eventService.createEvent(
@@ -614,7 +639,10 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
         newEvent.shifts,
         newEvent.product_categories
       );
-      setMessage({ type: 'success', text: 'Event created successfully!' });
+      setMessage({
+        type: 'success',
+        text: `Event created. ${getImageUploadSummary(uploadResults, 'Images uploaded unchanged.')}`
+      });
       setActiveTab('dashboard');
       fetchEvents();
       setNewEvent({
@@ -842,18 +870,23 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
       setUploading(true);
       const imageFiles = Array.isArray(files) ? files : [files];
 
+      const uploadResults = [];
       for (const file of imageFiles) {
-        const imageUrl = await eventService.uploadImage(file);
-        await eventService.addEventImage(editingEvent.id, imageUrl, makeCover);
+        const uploadResult = await eventService.uploadImage(file);
+        uploadResults.push(uploadResult);
+        await eventService.addEventImage(editingEvent.id, uploadResult.url, makeCover);
       }
 
       setMessage({
         type: 'success',
-        text: makeCover
-          ? 'Cover image updated!'
-          : imageFiles.length === 1
-            ? 'Event image added!'
-            : `${imageFiles.length} event images added!`
+        text: getImageUploadSummary(
+          uploadResults,
+          makeCover
+            ? 'Cover image uploaded unchanged.'
+            : imageFiles.length === 1
+              ? 'Event image uploaded unchanged.'
+              : `${imageFiles.length} event images uploaded unchanged.`
+        )
       });
       await refreshEditingEvent(editingEvent.id);
     } catch (error: any) {
@@ -1001,9 +1034,9 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const handleTempProductImageUpload = async (file: File) => {
     try {
       setUploading(true);
-      const url = await eventService.uploadProductImage(file);
-      setTempProduct(prev => ({ ...prev, image_url: url }));
-      setMessage({ type: 'success', text: 'Product image uploaded!' });
+      const uploadResult = await eventService.uploadProductImage(file);
+      setTempProduct(prev => ({ ...prev, image_url: uploadResult.url }));
+      setMessage({ type: 'success', text: getImageUploadMessage('Product image', uploadResult) });
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -1014,13 +1047,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const handleProductImageUpload = async (file: File, productId?: string) => {
     try {
       setUploading(true);
-      const url = await eventService.uploadProductImage(file);
+      const uploadResult = await eventService.uploadProductImage(file);
       if (productId) {
-        await handleUpdateProduct(productId, { image_url: url });
+        await handleUpdateProduct(productId, { image_url: uploadResult.url });
       } else {
-        setNewProduct(prev => ({ ...prev, image_url: url }));
+        setNewProduct(prev => ({ ...prev, image_url: uploadResult.url }));
       }
-      setMessage({ type: 'success', text: 'Product image uploaded!' });
+      setMessage({ type: 'success', text: getImageUploadMessage('Product image', uploadResult) });
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
     } finally {
@@ -1213,6 +1246,15 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               <ShieldAlert className="w-5 h-5" />
               <span className="text-sm">Archive</span>
             </button>
+            {imageTestEnabled && (
+              <button
+                onClick={() => setActiveTab('compression_test')}
+                className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'compression_test' ? 'bg-brand-bg text-brand-gold font-bold shadow-sm' : 'text-brand-text/60 hover:bg-brand-bg'}`}
+              >
+                <ImageIcon className="w-5 h-5" />
+                <span className="text-sm">Image Test</span>
+              </button>
+            )}
           </nav>
 
           <div className="mt-auto pt-8 border-t border-brand-border">
@@ -1228,6 +1270,13 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
 
         {/* Main Content */}
         <main className="flex-1 p-6 md:p-12 overflow-y-auto">
+          <div className="mb-8 flex items-start gap-3 rounded-2xl border border-brand-gold/20 bg-brand-gold/5 p-4 text-sm text-brand-text/70">
+            <ImageIcon className="mt-0.5 h-5 w-5 shrink-0 text-brand-gold" />
+            <p>
+              <span className="font-bold text-brand-text">Image optimization is active.</span>{' '}
+              Images over 2 MB are compressed before upload. Smaller images are uploaded unchanged.
+            </p>
+          </div>
           {activeTab === 'archive' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Archived Events */}
@@ -2299,6 +2348,8 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
             </div>
           ) : activeTab === 'email_templates' ? (
             <EmailTemplates setMessage={setMessage} />
+          ) : activeTab === 'compression_test' && imageTestEnabled ? (
+            <ImageCompressionTester />
           ) : null}
         </main>
       </div>
