@@ -106,6 +106,7 @@ export function createEventNotifications(options: Options) {
             check(inserted);
             const existing = await db.from('notify_email_subscriptions').select('id,status').eq('event_id', eventId).eq('email', email).single();
             check(existing);
+            const alreadySubscribed = existing.data!.id !== id && existing.data!.status === 'active';
             // Explicitly submitting this form again opts back in to this event's alerts.
             const saved = await db.from('notify_email_subscriptions').update({
                 email_language: language, status: 'active', unsubscribed_at: null,
@@ -113,7 +114,7 @@ export function createEventNotifications(options: Options) {
                 ...(existing.data!.status !== 'active' ? { created_at: new Date().toISOString() } : {}),
             }).eq('id', existing.data!.id);
             check(saved);
-            return res.json({ success: true });
+            return res.json({ success: true, alreadySubscribed });
         } catch (error) {
             console.error('Notify Me subscription failed:', error);
             return res.status(503).json({ error: 'Could not save your alert. Please try again later.' });
@@ -121,7 +122,7 @@ export function createEventNotifications(options: Options) {
     });
 
     function page(title: string, body: string, language = 'en') {
-        return `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>${escape(title)} — Weekplore</title></head><body style="margin:0;background:#f8f5ef;color:#29251f;font:16px/1.6 system-ui,sans-serif"><main style="max-width:440px;margin:12vh auto;padding:32px"><p>WEEKPLORE</p><h1>${escape(title)}</h1>${body}</main></body></html>`;
+        return `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="origin"><title>${escape(title)} — Weekplore</title></head><body style="margin:0;background:#f8f5ef;color:#29251f;font:16px/1.6 system-ui,sans-serif"><main style="max-width:440px;margin:12vh auto;padding:32px"><p>WEEKPLORE</p><h1>${escape(title)}</h1>${body}</main></body></html>`;
     }
     async function getUnsubscribe(id: string, token: unknown) {
         if (!UUID.test(id) || typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return null;
@@ -132,7 +133,9 @@ export function createEventNotifications(options: Options) {
         return expected && /^[a-f0-9]{64}$/.test(expected) && crypto.timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(hash(token), 'hex')) ? record : null;
     }
     router.get('/notify-me/unsubscribe/:id', async (req, res) => {
-        res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex' });
+        // no-referrer makes browser form POSTs send Origin: null, which CORS rejects.
+        // origin keeps the same-origin identity but never exposes the token URL path/query.
+        res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'origin', 'X-Robots-Tag': 'noindex' });
         try {
             const record = await getUnsubscribe(req.params.id, req.query.token);
             if (!record) return res.status(400).send(page('Invalid link', '<p>This alert link is invalid.</p>'));
@@ -147,7 +150,7 @@ export function createEventNotifications(options: Options) {
         }
     });
     router.post('/notify-me/unsubscribe/:id', async (req, res) => {
-        res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Robots-Tag': 'noindex' });
+        res.set({ 'Cache-Control': 'no-store', 'Referrer-Policy': 'origin', 'X-Robots-Tag': 'noindex' });
         try {
             const record = await getUnsubscribe(req.params.id, req.body?.token);
             if (!record) return res.status(400).send(page('Invalid link', '<p>This alert link is invalid.</p>'));

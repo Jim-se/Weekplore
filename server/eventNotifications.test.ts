@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import express from 'express';
+import cors from 'cors';
 import { athensTimestamp, createEventNotifications, eventAcceptsAlerts, normalizeAlertEmail, remainingPlaces } from './eventNotifications.js';
 import { renderEventAlert, validateEventAlertTemplate } from './eventAlertTemplate.js';
 
@@ -64,10 +65,20 @@ function fixture() {
 }
 
 async function withApi(f: ReturnType<typeof fixture>, run: (url: string) => Promise<void>) {
-    const app = express(); app.use(express.json()); app.use('/api', f.notifications.router);
+    let serverOrigin = '';
+    const app = express();
+    app.use(cors({ origin(origin, callback) {
+        if (!origin || origin === serverOrigin) return callback(null, true);
+        return callback(new Error('Origin not allowed by CORS policy'));
+    } }));
+    app.use(express.json()); app.use('/api', f.notifications.router);
+    app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+        res.status(403).json({ error: error.message });
+    });
     const server = app.listen(0, '127.0.0.1');
     await new Promise<void>(resolve => server.once('listening', resolve));
     const address = server.address() as { port: number };
+    serverOrigin = `http://127.0.0.1:${address.port}`;
     try { await run(`http://127.0.0.1:${address.port}/api`); }
     finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
 }
@@ -91,8 +102,12 @@ test('validates emails, respects Athens time, closed events and canceled group c
 test('email-only subscriptions deduplicate, reject invalid/closed events and rate-limit requests', async () => {
     const f = fixture();
     await withApi(f, async url => {
-        assert.equal((await subscribe(url, ' PERSON@example.com ')).status, 200);
-        assert.equal((await subscribe(url, 'person@example.com')).status, 200);
+        const first = await subscribe(url, ' PERSON@example.com ');
+        assert.equal(first.status, 200);
+        assert.equal((await first.json()).alreadySubscribed, false);
+        const repeated = await subscribe(url, 'person@example.com');
+        assert.equal(repeated.status, 200);
+        assert.equal((await repeated.json()).alreadySubscribed, true);
         assert.equal(f.tables.notify_email_subscriptions.length, 1);
         assert.equal(f.tables.notify_email_subscriptions[0].email, 'person@example.com');
         assert.equal(f.tables.notify_email_subscriptions[0].unsubscribe_token_hash.length, 64);
@@ -140,15 +155,25 @@ test('unsubscribe GET is read-only, POST stops this event only, tampered tokens 
         const parsed = new URL(link);
         const local = `${url}${parsed.pathname.replace('/api', '')}${parsed.search}`;
         const record = f.tables.notify_email_subscriptions[0];
-        assert.equal((await fetch(local)).status, 200); assert.equal(record.status, 'active');
+        const confirmation = await fetch(local);
+        assert.equal(confirmation.status, 200); assert.equal(record.status, 'active');
+        assert.equal(confirmation.headers.get('referrer-policy'), 'origin');
+        assert.ok((await confirmation.text()).includes('<meta name="referrer" content="origin">'));
         assert.equal((await fetch(`${local}x`)).status, 400);
         const body = new URLSearchParams({ token: parsed.searchParams.get('token')! });
-        assert.equal((await fetch(local.split('?')[0], { method: 'POST', body })).status, 200);
+        // A null origin is still rejected; the confirmation page must preserve the server origin.
+        assert.equal((await fetch(local.split('?')[0], { method: 'POST', body, headers: { Origin: 'null' } })).status, 403);
+        assert.equal(record.status, 'active');
+        const stopped = await fetch(local.split('?')[0], { method: 'POST', body, headers: { Origin: new URL(url).origin } });
+        assert.equal(stopped.status, 200);
+        assert.equal(stopped.headers.get('referrer-policy'), 'origin');
         assert.equal(record.status, 'unsubscribed'); assert.ok(record.unsubscribed_at);
         assert.equal(f.tables.notify_email_subscriptions[1].status, 'active');
         await f.notifications.queueCancellation(f.tables.bookings[0], 'booking:3:second');
         await f.notifications.processQueue(); assert.equal(f.emails.length, 1);
-        await subscribe(url, 'one@example.com'); assert.equal(record.status, 'active');
+        const rejoined = await subscribe(url, 'one@example.com');
+        assert.equal((await rejoined.json()).alreadySubscribed, false);
+        assert.equal(record.status, 'active');
         assert.equal(f.tables.notify_email_subscriptions.filter(s => s.event_id === 1).length, 1);
     });
 });

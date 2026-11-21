@@ -43,6 +43,7 @@ export const eventService = {
       body: JSON.stringify({ eventId, email, email_language: emailLanguage }),
     });
     if (!response.ok) throw new Error('Could not subscribe to event alerts.');
+    return await response.json() as { success: boolean; alreadySubscribed?: boolean };
   },
   async getEvents() {
     const response = await fetch(buildApiUrl('/api/events'));

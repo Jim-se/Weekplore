@@ -9,6 +9,7 @@ export default function NotifyMeModal({ event, onClose }: { event: WeekploreEven
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [alreadySubscribed, setAlreadySubscribed] = useState(false);
   const [error, setError] = useState('');
   const headingId = useId();
   const emailId = useId();
@@ -42,7 +43,8 @@ export default function NotifyMeModal({ event, onClose }: { event: WeekploreEven
     if (busy) return;
     setBusy(true); setError('');
     try {
-      await eventService.subscribeEventNotifications(event.id, email, gr ? 'el' : 'en');
+      const result = await eventService.subscribeEventNotifications(event.id, email, gr ? 'el' : 'en');
+      setAlreadySubscribed(result.alreadySubscribed === true);
       setSuccess(true);
     } catch {
       setError(gr ? 'Η εγγραφή δεν ολοκληρώθηκε. Δοκιμάστε ξανά σε λίγο.' : 'We couldn’t save your alert. Please try again shortly.');
@@ -54,7 +56,7 @@ export default function NotifyMeModal({ event, onClose }: { event: WeekploreEven
       <div ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby={headingId} className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-[28px] bg-brand-bg p-6 shadow-2xl sm:p-9">
         <button type="button" onClick={onClose} aria-label={gr ? 'Κλείσιμο' : 'Close'} className="absolute right-3 top-3 rounded-full p-3 text-brand-text/60 hover:bg-brand-text/5 focus-visible:outline-2"><X size={20} /></button>
         {success ? <Check className="mb-5 h-8 w-8 text-brand-gold" /> : <Bell className="mb-5 h-8 w-8 text-brand-gold" />}
-        <h2 id={headingId} className="pr-6 text-3xl font-bold serif-font">{success ? (gr ? 'Είστε στη λίστα!' : 'You’re on the list!') : t('common.notifyMe')}</h2>
+        <h2 id={headingId} className="pr-6 text-3xl font-bold serif-font">{success ? (alreadySubscribed ? (gr ? 'Είστε ήδη στη λίστα!' : 'You’re already on the list!') : (gr ? 'Είστε στη λίστα!' : 'You’re on the list!')) : t('common.notifyMe')}</h2>
         <p className="mt-3 font-bold text-brand-text">{event.title}</p>
         {success ? <>
           <p role="status" className="mt-4 text-sm leading-relaxed text-brand-text/70">{gr ? 'Θα σας στείλουμε email όταν ελευθερωθούν θέσεις σε κάποια ώρα της εκδήλωσης. Οι θέσεις δεν δεσμεύονται.' : 'We’ll email you when places open up in any time slot for this event. Places aren’t reserved.'}</p>
