@@ -26,6 +26,7 @@ const EMAIL_PURPOSES = [
   { id: 'payment_invitation', label: 'Payment Invitation', description: 'Request for payment' },
   { id: 'confirmed_shift_booking', label: 'Confirmed Shift', description: 'Goal met confirmation' },
   { id: 'shift_cancelled', label: 'Shift Cancelled', description: 'Cancellation notice' },
+  { id: 'event_availability_alert', label: 'Notify Me', description: 'Places available after a cancellation. Include {booking_url} and {unsubscribe_url} in both language versions. No links are appended automatically.' },
   { id: 'private_event_inquiry_received', label: 'Private Event Auto-Reply', description: 'Auto-reply to users who submit an inquiry' },
 ];
 
@@ -38,6 +39,8 @@ const VARIABLE_REFERENCE = [
   { key: '{price}', label: 'Total Price', example: '€150.00' },
   { key: '{booking_reference}', label: 'Booking Reference', example: 'WKP-000123' },
   { key: '{cancel_url}', label: 'Cancellation Link', example: 'Clickable link' },
+  { key: '{booking_url}', label: 'Notify Me Booking URL', example: 'Event booking page' },
+  { key: '{unsubscribe_url}', label: 'Notify Me Stop Alerts URL', example: 'Stop alerts for this event' },
 ];
 
 const VariableReference: React.FC = () => (
@@ -226,7 +229,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
         people: '2',
         price: '150.00',
         booking_reference: 'WKP-000123',
-        cancel_url: '#'
+        cancel_url: '#', booking_url: '#', unsubscribe_url: '#'
       }
       : {
         name: 'Alexandros',
@@ -236,7 +239,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
         people: '2',
         price: '150.00',
         booking_reference: 'WKP-000123',
-        cancel_url: '#'
+        cancel_url: '#', booking_url: '#', unsubscribe_url: '#'
       };
 
     let html = body;
@@ -269,7 +272,9 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
       .replace(/{price}/g, '150.00')
       .replace(/{people}/g, '2')
       .replace(/{booking_reference}/g, 'WKP-000123')
-      .replace(/{cancel_url}/g, '#');
+      .replace(/{cancel_url}/g, '#')
+      .replace(/{booking_url}/g, '#')
+      .replace(/{unsubscribe_url}/g, '#');
   };
 
   if (loading && templates.length === 0) {
@@ -335,7 +340,7 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                       : 'border-brand-terracotta bg-brand-terracotta/5'
                       }`}
                   >
-                    <option value="">Select template...</option>
+                    <option value="">{purpose.id === 'event_availability_alert' ? 'Use default email' : 'Select template...'}</option>
                     {templates.map(t => (
                       <option key={t.id} value={t.id}>[{String(t.id).slice(0, 8)}] {getTemplateDisplayName(t)}</option>
                     ))}
@@ -344,7 +349,8 @@ const EmailTemplates: React.FC<EmailTemplatesProps> = ({ setMessage }) => {
                     }`} />
                 </div>
 
-                {!assignedTemplateId && (
+                {purpose.id === 'event_availability_alert' && <p className="mt-3 text-[11px] leading-relaxed text-brand-text/60">Supported tags: {'{event}'}, {'{date}'}, {'{location}'}, {'{booking_url}'}, {'{unsubscribe_url}'}. No customer name or group size is collected.</p>}
+                {!assignedTemplateId && purpose.id !== 'event_availability_alert' && (
                   <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}

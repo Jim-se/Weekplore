@@ -61,6 +61,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
   });
 
   const [personSelections, setPersonSelections] = useState<Record<string, string>[]>([]);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -341,7 +342,8 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                         )}
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                           {event.products?.map(product => {
-                            const isSelected = selectedId === product.id;
+                            const categoryKey = getCategoryKey(product.category_id ?? 'legacy');
+                            const isSelected = selectionMap[categoryKey] === product.id;
                             const isFreeProduct = product.price === 0;
                             return (
                               <button
@@ -349,7 +351,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                                 type="button"
                                 onClick={() => {
                                   const newSels = [...personSelections];
-                                  newSels[pIdx] = product.id;
+                                  newSels[pIdx] = { ...newSels[pIdx], [categoryKey]: product.id };
                                   setPersonSelections(newSels);
                                 }}
                                 className={`flex items-center gap-3 rounded-xl border p-2 text-left transition-all ${
@@ -402,6 +404,17 @@ const BookingModal: React.FC<BookingModalProps> = ({ event, onClose, onSubmit })
                   </span>
                 </div>
               </div>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-brand-gold/5 px-4 py-4 text-sm leading-relaxed text-brand-text/80">
+                <input
+                  type="checkbox"
+                  name="newsletterOptIn"
+                  checked={newsletterOptIn}
+                  onChange={e => setNewsletterOptIn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#4b3d2e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-text"
+                />
+                <span>{t('booking.newsletterOptIn')}</span>
+              </label>
 
               <div className="space-y-2">
                 <button

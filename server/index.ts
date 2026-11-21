@@ -1,3 +1,5 @@
+import { sanitizeNewsletterHtml, imageExtension } from './newsletterImages.js';
+import { athensSchedule, dispatchBroadcast, cancelScheduledBroadcast, processDueNewsletterStatuses } from './newsletterBroadcast.js';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -5,6 +7,10 @@ import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import sanitizeHtml from 'sanitize-html';
+import { normalizeNewsletterEmail, subscribeNewsletter, newsletterProvider, resendRequest } from './newsletter.js';
+import { createNewsletterWebhook } from './newsletterWebhook.js';
+import { createEventNotifications } from './eventNotifications.js';
+import { validateEventAlertTemplate } from './eventAlertTemplate.js';
 
 dotenv.config();
 
@@ -468,6 +474,25 @@ app.use(cors({
         return callback(new Error('Origin not allowed by CORS'));
     }
 }));
+app.post('/api/newsletter/resend-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    const secret = process.env.RESEND_NEWSLETTER_WEBHOOK_SECRET;
+    if (newsletterProvider() !== 'resend' || !secret) { res.sendStatus(503); return; }
+    let event: any;
+    try {
+        event = new Resend(process.env.RESEND_NEWSLETTER_API_KEY).webhooks.verify({
+            payload: req.body.toString('utf8'), webhookSecret: secret,
+            headers: { id: req.get('svix-id') || '', timestamp: req.get('svix-timestamp') || '', signature: req.get('svix-signature') || '' },
+        });
+    } catch { res.sendStatus(401); return; }
+    if (event.type !== 'contact.updated' || event.data?.unsubscribed !== true) { res.sendStatus(204); return; }
+    const email = normalizeNewsletterEmail(event.data.email);
+    const timestamp = new Date(event.created_at);
+    if (!email || !Number.isFinite(timestamp.getTime())) { res.sendStatus(400); return; }
+    const { error } = await supabase.from('newsletter_subscribers').update({ unsubscribed_at: timestamp.toISOString(),
+        sync_status: 'synced', last_synced_at: new Date().toISOString() }).eq('email', email).is('unsubscribed_at', null)
+        .or(`consented_at.is.null,consented_at.lte.${timestamp.toISOString()}`);
+    res.sendStatus(error ? 503 : 204);
+});
 app.use(express.json());
 app.use((req, _res, next) => {
     if (req.body && typeof req.body === 'object') {
@@ -530,7 +555,7 @@ const isValidISODatetime = (iso: string): boolean => {
 
 // --- CANCEL TOKEN HELPER ---
 const CANCEL_SECRET = process.env.CANCEL_SECRET || 'weekplore-cancel-secret-change-me';
-const SERVER_URL = (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3001}`).replace(/\/+$/, '');
+const SERVER_URL = new URL(process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3001}`).origin;
 
 const generateCancelToken = (bookingId: number | string): string => {
     return crypto.createHmac('sha256', CANCEL_SECRET).update(String(bookingId)).digest('hex');
@@ -912,6 +937,17 @@ const archiveEventAndNotify = async (
 
 // --- PUBLIC SELF-SERVICE CANCEL ENDPOINTS ---
 
+const eventNotifications = createEventNotifications({
+    db: supabase,
+    serverUrl: SERVER_URL,
+    siteUrl: process.env.SITE_URL || 'https://weekplore.gr',
+    secret: process.env.NOTIFY_ME_SECRET || process.env.CANCEL_SECRET || '',
+    from: process.env.EMAIL_FROM || 'info@weekplore.gr',
+    emailEnabled: () => Boolean(process.env.RESEND_API_KEY),
+    send: (message, options) => resend.emails.send(message, options),
+});
+app.use('/api', eventNotifications.router);
+
 // GET: Show the confirmation page
 app.get('/api/cancel-booking/:id', async (req, res) => {
     const { id } = req.params;
@@ -961,11 +997,8 @@ app.post('/api/cancel-booking/:id', async (req, res) => {
 
         const eventTitle = (booking.events as any)?.title || 'your experience';
 
-        // Delete booking products first, then the booking
-        await supabase.from('booking_products').delete().eq('booking_id', id);
-        const { error: deleteError } = await supabase.from('bookings').delete().eq('id', id);
-
-        if (deleteError) throw deleteError;
+        // Preserve reservation history and let only the first cancellation transition trigger alerts.
+        await eventNotifications.cancelReservations([Number(id)]);
 
         return res.send(cancelSuccessHtml(booking.full_name, eventTitle, id));
     } catch (err: any) {
@@ -1284,6 +1317,159 @@ app.post('/api/private-event-inquiries', async (req, res) => {
 
 // --- BOOKINGS ---
 
+const newsletterDraftFields = 'id,subject,preview_text,body_html,updated_at,scheudled_at,status,resend_broadcast_id,sent_at';
+app.post('/api/admin/newsletter/images', requireAdmin, express.raw({ type: ['image/jpeg', 'image/png', 'image/webp'], limit: '5mb' }), async (req, res) => {
+    if (!Buffer.isBuffer(req.body) || !req.body.length) { res.status(400).json({ error: 'Image required' }); return; }
+    const ext = imageExtension(req.body, req.get('content-type')?.split(';')[0] || '');
+    if (!ext) { res.status(400).json({ error: 'Unsupported image file' }); return; }
+    try {
+        const path = `${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabase.storage.from('newsletter-images').upload(path, req.body, { contentType: req.get('content-type'), upsert: false, cacheControl: '31536000' });
+        if (error) throw error;
+        const { data } = supabase.storage.from('newsletter-images').getPublicUrl(path);
+        res.json({ url: data.publicUrl });
+    } catch { res.status(500).json({ error: 'Image upload failed' }); }
+});
+
+app.post('/api/admin/newsletter/send-test', requireAdmin, bookingRateLimit, async (req, res) => {
+    const recipient = normalizeNewsletterEmail(req.body?.recipient);
+    const { subject, preview_text, body_html } = req.body || {};
+    if (!recipient || typeof subject !== 'string' || !subject.trim() || subject.length > 200 || typeof preview_text !== 'string' || preview_text.length > 250 || typeof body_html !== 'string' || body_html.length > 80000) {
+        res.status(400).json({ error: 'A valid test address, subject, and message are required.' }); return;
+    }
+    const body = sanitizeNewsletterHtml(body_html);
+    if (!body.replace(/<[^>]*>/g, '').trim() && !/<img\b[^>]*src="https:/i.test(body)) { res.status(400).json({ error: 'Message is empty.' }); return; }
+    if (newsletterProvider() === 'resend') {
+        try {
+            const response = await resendRequest('/emails', 'POST', {
+                from: process.env.RESEND_NEWSLETTER_FROM || 'Weekplore <hello@weekplore.gr>',
+                reply_to: 'info@weekplore.gr', to: [recipient], subject: `[TEST] ${subject.trim()}`,
+                html: `<html><body style="font-family:Arial,sans-serif;color:#4b3d2e"><div style="max-width:600px;margin:auto;padding:32px"><h1 style="font-family:Georgia,serif;font-style:italic">Weekplore.</h1>${body}<p style="font-size:11px;margin-top:32px">Test preview only. This does not subscribe the recipient.</p></div></body></html>`,
+            });
+            if (!response.ok) throw new Error('Resend rejected the test email. Check sender verification and API permissions.');
+            res.json({ status: 'accepted' });
+        } catch { res.status(502).json({ error: 'Resend test sending failed. Check sender verification, quota, and API permissions.' }); }
+        return;
+    }
+    if (!process.env.BREVO_API_KEY) { res.status(503).json({ error: 'Brevo is not configured.' }); return; }
+    try {
+        const headers = { 'api-key': process.env.BREVO_API_KEY, 'Content-Type': 'application/json' };
+        const escapeText = (text: string) => text.replace(/[&<>"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]!));
+        const htmlContent = `<!doctype html><html><body style="margin:0;background:#faf7f2;font-family:Arial,sans-serif;color:#4b3d2e"><div style="display:none;max-height:0;overflow:hidden">${escapeText(preview_text)}</div><div style="max-width:600px;margin:0 auto;padding:40px 24px;background:white"><h1 style="font-family:Georgia,serif;font-style:italic">Weekplore.</h1>${body}<div style="margin-top:40px;border-top:1px solid #eee;padding-top:20px;font-size:11px;text-align:center">This is a test newsletter. <a href="{{ unsubscribe }}">Unsubscribe</a></div></div></body></html>`;
+        // No audience list or schedule is attached: this campaign is test-only.
+        const create = await fetch('https://api.brevo.com/v3/emailCampaigns', {
+            method: 'POST', headers, signal: AbortSignal.timeout(15000),
+            body: JSON.stringify({ name: `Weekplore test ${new Date().toISOString()}`, type: 'classic',
+                subject: subject.trim(), previewText: preview_text,
+                sender: { name: 'Weekplore', email: 'hello@news.weekplore.gr' },
+                replyTo: 'info@weekplore.gr', htmlContent }),
+        });
+        if (!create.ok) throw new Error('Brevo could not prepare the test email. Check account and sender verification.');
+        const campaign = await create.json();
+        if (!Number.isSafeInteger(campaign.id)) throw new Error('Invalid Brevo response.');
+        const send = await fetch(`https://api.brevo.com/v3/emailCampaigns/${campaign.id}/sendTest`, {
+            method: 'POST', headers, signal: AbortSignal.timeout(15000),
+            body: JSON.stringify({ emailTo: [recipient] }),
+        });
+        if (!send.ok) throw new Error('Brevo could not send the test. Check the test recipient, account verification, and daily test limit.');
+        res.json({ status: 'accepted' });
+    } catch (error) {
+        res.status(502).json({ error: error instanceof Error && !error.message.includes('fetch') ? error.message : 'Test sending failed. Please check Brevo before trying again.' });
+    }
+});
+
+app.post('/api/admin/newsletter/drafts/:id/cancel', requireAdmin, async (req, res) => {
+    if (newsletterProvider() !== 'resend' || req.body?.confirmed !== true || !/^[0-9a-f-]{36}$/i.test(req.params.id)) {
+        res.status(400).json({ error: 'Valid email ID and confirmation required' }); return;
+    }
+    try { res.json(await cancelScheduledBroadcast(supabase, req.params.id)); }
+    catch (error) { res.status(409).json({ error: error instanceof Error ? error.message : 'Cancellation could not be confirmed' }); }
+});
+
+app.post('/api/admin/newsletter/drafts/:id/send', requireAdmin, bookingRateLimit, async (req, res) => {
+    if (newsletterProvider() !== 'resend') { res.status(409).json({ error: 'Resend newsletter provider is required' }); return; }
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id) || req.body?.confirmed !== true) { res.status(400).json({ error: 'Confirmation required' }); return; }
+    let schedule: string | null;
+    try { schedule = athensSchedule(req.body.scheduledAt); }
+    catch (error) { res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid schedule' }); return; }
+    try { res.json(await dispatchBroadcast(supabase, req.params.id, schedule)); }
+    catch (error) { res.status(409).json({ error: error instanceof Error ? error.message : 'Sending could not be confirmed. Check Resend before retrying.' }); }
+});
+
+app.get('/api/admin/newsletter/drafts', requireAdmin, async (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+        const rows = [];
+        for (let offset = 0; ; offset += 500) {
+            const { data, error } = await supabase.from('newsletter_emails').select(newsletterDraftFields)
+                .order('updated_at', { ascending: false }).order('id').range(offset, offset + 499);
+            if (error) throw error;
+            rows.push(...(data || []));
+            if (!data || data.length < 500) break;
+        }
+        res.json(rows);
+    } catch { res.status(500).json({ error: 'Could not load drafts' }); }
+});
+app.put('/api/admin/newsletter/drafts/:id', requireAdmin, async (req, res) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+        res.status(400).json({ error: 'Invalid draft ID' }); return;
+    }
+    const { subject, preview_text, body_html } = req.body || {};
+    if (typeof subject !== 'string' || subject.length > 200 || typeof preview_text !== 'string' || preview_text.length > 250 || typeof body_html !== 'string' || body_html.length > 80000) {
+        res.status(400).json({ error: 'Invalid draft content' }); return;
+    }
+    const body = sanitizeNewsletterHtml(body_html);
+    if (!subject.trim() || (!body.replace(/<[^>]*>/g, '').trim() && !/<img\b[^>]*src="https:/i.test(body))) { res.status(400).json({ error: 'Subject and message required' }); return; }
+    try {
+        const values = { subject: subject.trim(), preview_text, body_html: body, updated_at: new Date().toISOString() };
+        const { data: existing, error: lookupError } = await supabase.from('newsletter_emails').select('status').eq('id', req.params.id).maybeSingle();
+        if (lookupError) throw lookupError;
+        if (existing && existing.status !== 'draft') { res.status(409).json({ error: 'Only drafts can be edited' }); return; }
+        const query = existing
+            ? supabase.from('newsletter_emails').update(values).eq('id', req.params.id).eq('status', 'draft')
+            : supabase.from('newsletter_emails').insert({ id: req.params.id, ...values, status: 'draft' });
+        const { data, error } = await query.select(newsletterDraftFields).single();
+        if (error) throw error;
+        res.json(data);
+    } catch { res.status(500).json({ error: 'Could not save draft' }); }
+});
+
+app.get('/api/admin/newsletter/subscribers', requireAdmin, async (req, res) => {
+    const page = Number(req.query.page ?? 1);
+    if (!Number.isSafeInteger(page) || page < 1 || page > 100000) {
+        res.status(400).json({ error: 'Invalid page' });
+        return;
+    }
+    res.setHeader('Cache-Control', 'no-store');
+    try {
+        const pageSize = 50;
+        const { data, error, count } = await supabase.from('newsletter_subscribers')
+            .select('id,email,source,created_at,consented_at,unsubscribed_at', { count: 'exact' })
+            .order('created_at', { ascending: false }).order('id', { ascending: false })
+            .range((page - 1) * pageSize, page * pageSize - 1);
+        if (error) throw error;
+        res.json({ subscribers: data || [], total: count || 0, page, pageSize });
+    } catch {
+        res.status(500).json({ error: 'Could not load subscribers' });
+    }
+});
+
+app.post('/api/newsletter/brevo-webhook', (req, res, next) => { if (newsletterProvider() !== 'brevo') { res.sendStatus(204); return; } return createNewsletterWebhook(supabase)(req, res, next); });
+
+app.post('/api/newsletter/subscribe', bookingRateLimit, async (req, res) => {
+    const email = normalizeNewsletterEmail(req.body?.email);
+    if (!email || req.body?.consent !== true) {
+        res.status(400).json({ error: 'A valid email and newsletter consent are required.' });
+        return;
+    }
+    try {
+        const status = await subscribeNewsletter(supabase, email, 'website');
+        res.json({ status });
+    } catch {
+        res.status(503).json({ error: 'Newsletter signup is temporarily unavailable. Please try again later.' });
+    }
+});
+
 app.post('/api/bookings', bookingRateLimit, async (req, res) => {
     const { eventId, formData } = req.body ?? {};
     const normalizedEventId = Number(eventId);
@@ -1569,6 +1755,10 @@ app.post('/api/bookings', bookingRateLimit, async (req, res) => {
             }
         }
 
+        // A completed reservation no longer needs availability alerts for this event.
+        try { await eventNotifications.fulfill(normalizedEventId, normalizedEmail); }
+        catch (error) { console.error('Could not stop event alerts after booking:', error); }
+
         // --- 4. Email Logic (Run asynchronously so it doesn't block the response) ---
         failureStage = 'send_booking_response';
         if (process.env.RESEND_API_KEY) {
@@ -1778,6 +1968,17 @@ app.post('/api/bookings', bookingRateLimit, async (req, res) => {
             })();
         }
 
+        if (req.body?.formData?.newsletterOptIn === true) {
+            const newsletterEmail = normalizeNewsletterEmail(booking.email);
+            if (newsletterEmail) {
+                try {
+                    await subscribeNewsletter(supabase, newsletterEmail, 'booking');
+                } catch {
+                    // Newsletter delivery must never turn a saved booking into a failed booking.
+                    console.warn('Newsletter signup failed after successful booking', { bookingId: booking.id });
+                }
+            }
+        }
         res.json(booking);
     } catch (error: any) {
         console.error('Booking error:', {
@@ -1849,12 +2050,12 @@ app.patch('/api/admin/bookings/reservation-status', requireAdmin, async (req, re
     }
 
     try {
-        const { error } = await supabase
-            .from('bookings')
-            .update({ status: normalizedStatus })
-            .in('id', bookingIds);
-
-        if (error) throw error;
+        if (normalizedStatus === 'canceled') {
+            await eventNotifications.cancelReservations(bookingIds);
+        } else {
+            const { error } = await supabase.from('bookings').update({ status: normalizedStatus }).in('id', bookingIds);
+            if (error) throw error;
+        }
         res.json({ success: true });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -2901,6 +3102,14 @@ app.put('/api/admin/email-templates/:id', requireAdmin, async (req, res) => {
     }
 
     try {
+        const assignment = await supabase.from('email_purposes').select('id').eq('purpose', 'event_availability_alert').eq('template_id', req.params.id).maybeSingle();
+        if (assignment.error) throw assignment.error;
+        if (assignment.data) {
+            const current = await supabase.from('email_templates').select('*').eq('id', req.params.id).single();
+            if (current.error) throw current.error;
+            const validationError = validateEventAlertTemplate({ ...current.data, ...safeTemplate });
+            if (validationError) return res.status(400).json({ error: validationError });
+        }
         const { data, error } = await supabase.from('email_templates').update(safeTemplate).eq('id', req.params.id).select().single();
         if (error) throw error;
         res.json(data);
@@ -2958,6 +3167,12 @@ app.put('/api/admin/email-purposes', requireAdmin, async (req, res) => {
     }
 
     try {
+        if (purpose === 'event_availability_alert' && templateId) {
+            const template = await supabase.from('email_templates').select('*').eq('id', templateId).single();
+            if (template.error) return res.status(400).json({ error: 'Template not found.' });
+            const validationError = validateEventAlertTemplate(template.data);
+            if (validationError) return res.status(400).json({ error: validationError });
+        }
         console.log(`Updating purpose ${purpose} with template ${templateId}`);
         // Upsert by purpose (we assume purpose is a column in email_purposes)
         const { data, error } = await supabase
@@ -3012,4 +3227,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+    void processDueNewsletterStatuses(supabase);
+    const newsletterStatusTimer = setInterval(() => { void processDueNewsletterStatuses(supabase); }, 60_000);
+    newsletterStatusTimer.unref();
+    void eventNotifications.processQueue();
+    const alertTimer = setInterval(() => { void eventNotifications.processQueue(); }, 60_000);
+    alertTimer.unref();
 });

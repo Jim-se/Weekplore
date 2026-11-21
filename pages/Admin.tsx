@@ -22,6 +22,7 @@ import {
   Save,
   PlusCircle,
   Mail,
+  FileText,
   Phone,
   Check,
   ExternalLink,
@@ -34,6 +35,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import EmailTemplates from '../components/EmailTemplates';
+import Newsletter from '../components/Newsletter';
 import ProductCategoryManager, { ProductDraft } from '../components/ProductCategoryManager';
 import RichTextContent from '../components/RichTextContent';
 import RichTextEditor from '../components/RichTextEditor';
@@ -254,7 +256,7 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'private_events' | 'email_templates' | 'reviews' | 'people' | 'archive' | 'compression_test'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'add' | 'private_events' | 'email_templates' | 'newsletter' | 'reviews' | 'people' | 'archive' | 'compression_test'>('dashboard');
   const [events, setEvents] = useState<any[]>([]);
   const [privateEvents, setPrivateEvents] = useState<PrivateEvent[]>([]);
   const [privateEventInquiries, setPrivateEventInquiries] = useState<any[]>([]);
@@ -1222,8 +1224,12 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
               onClick={() => setActiveTab('email_templates')}
               className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'email_templates' ? 'bg-brand-bg text-brand-gold font-bold shadow-sm' : 'text-brand-text/60 hover:bg-brand-bg'}`}
             >
-              <Mail className="w-5 h-5" />
+              <FileText className="w-5 h-5" />
               <span className="text-sm">Email Templates</span>
+            </button>
+            <button onClick={() => setActiveTab('newsletter')}
+              className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all ${activeTab === 'newsletter' ? 'bg-brand-bg text-brand-gold font-bold shadow-sm' : 'text-brand-text/60 hover:bg-brand-bg'}`}>
+              <Mail className="w-5 h-5" /><span className="text-sm">Newsletter</span>
             </button>
             <button
               onClick={() => setActiveTab('reviews')}
@@ -2346,6 +2352,8 @@ const Admin: React.FC<AdminProps> = ({ onNavigate }) => {
                 )}
               </AnimatePresence>
             </div>
+          ) : activeTab === 'newsletter' ? (
+            <Newsletter />
           ) : activeTab === 'email_templates' ? (
             <EmailTemplates setMessage={setMessage} />
           ) : activeTab === 'compression_test' && imageTestEnabled ? (

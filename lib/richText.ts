@@ -1,4 +1,4 @@
-const RICH_TEXT_TAG_PATTERN = /<(?:p|br|strong|em|span)\b/i;
+const RICH_TEXT_TAG_PATTERN = /<(?:p|br|strong|em|span|img)\b/i;
 
 const escapeHtml = (value: string) =>
   value
@@ -44,6 +44,17 @@ const sanitizeRichTextNode = (node: Node, targetDocument: Document): Node => {
     return targetDocument.createDocumentFragment();
   }
 
+  if (tagName === 'img') {
+    const src = node.getAttribute('src') || '';
+    try { if (new URL(src).protocol !== 'https:') return targetDocument.createDocumentFragment(); }
+    catch { return targetDocument.createDocumentFragment(); }
+    const img = targetDocument.createElement('img');
+    img.setAttribute('src', src); img.setAttribute('alt', node.getAttribute('alt') || '');
+    const width = Number(node.getAttribute('width'));
+    if (Number.isFinite(width) && width > 0) img.setAttribute('width', String(Math.min(1200, Math.round(width))));
+    img.setAttribute('style', 'max-width:100%;height:auto;display:block;margin:16px auto');
+    return img;
+  }
   const allowedTags = new Set(['p', 'br', 'strong', 'em', 'span']);
   if (!allowedTags.has(tagName)) {
     const fragment = targetDocument.createDocumentFragment();

@@ -36,6 +36,14 @@ export type ImageUploadResult = {
 };
 
 export const eventService = {
+  async subscribeEventNotifications(eventId: number, email: string, emailLanguage: 'el' | 'en') {
+    const response = await fetch(buildApiUrl('/api/notify-me'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ eventId, email, email_language: emailLanguage }),
+    });
+    if (!response.ok) throw new Error('Could not subscribe to event alerts.');
+  },
   async getEvents() {
     const response = await fetch(buildApiUrl('/api/events'));
     if (!response.ok) {

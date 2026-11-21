@@ -2,6 +2,7 @@
 import React from 'react';
 import { WeekploreEvent } from '../types';
 import { useLanguage } from '../lib/LanguageContext';
+import { isEventSoldOut } from '../lib/eventAvailability';
 
 interface EventCardProps {
   event: WeekploreEvent;
@@ -14,8 +15,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
   const bookableShifts = event.shifts?.filter(
     s => s.is_active !== false && s.status !== 'canceled' && s.status !== 'cancelled' && s.status !== 'archived'
   ) || [];
-  const availableShifts = bookableShifts.filter(s => !s.is_full && s.booked_spots < s.capacity);
-  const isSoldOut = event.is_sold_out || availableShifts.length === 0;
+  const isSoldOut = isEventSoldOut(event);
   
   const locale = language === 'gr' ? 'el-GR' : 'en-US';
 
@@ -109,14 +109,13 @@ const EventCard: React.FC<EventCardProps> = ({ event, onBook, onInfo }) => {
             Info
           </button>
           <button
-            disabled={isSoldOut}
             onClick={() => onBook(event)}
             className={`col-span-1 min-h-11 rounded-full py-3 text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg transition-all active:scale-95 sm:col-span-2 sm:py-4 ${isSoldOut
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+              ? 'bg-brand-terracotta text-white hover:bg-brand-text'
               : 'bg-brand-text text-brand-bg hover:bg-brand-gold hover:shadow-brand-gold/20'
               }`}
           >
-            {isSoldOut ? t('common.soldOut', { stripAccents: true }) : t('common.bookNow', { stripAccents: true })}
+            {isSoldOut ? t('common.notifyMe') : t('common.bookNow', { stripAccents: true })}
           </button>
         </div>
       </div>

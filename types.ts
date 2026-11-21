@@ -117,6 +117,7 @@ export interface PrivateEventInquiryFormData {
 }
 
 export interface BookingFormData {
+  newsletterOptIn?: boolean;
   fullName: string;
   phone: string;
   email: string;

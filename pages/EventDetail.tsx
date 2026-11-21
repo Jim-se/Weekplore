@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { WeekploreEvent, BookingFormData } from '../types';
 import BookingModal from '../components/BookingModalV2';
+import NotifyMeModal from '../components/NotifyMeModal';
+import { isEventSoldOut } from '../lib/eventAvailability';
 import MessageDisplay from '../components/MessageDisplay';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, MapPin, Calendar, Clock } from 'lucide-react';
@@ -142,8 +144,7 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
   const bookableShifts = event.shifts?.filter(
     s => s.is_active !== false && s.status !== 'canceled' && s.status !== 'cancelled' && s.status !== 'archived'
   ) || [];
-  const availableShifts = bookableShifts.filter(s => !s.is_full && s.booked_spots < s.capacity);
-  const isSoldOut = event.is_sold_out || availableShifts.length === 0;
+  const isSoldOut = isEventSoldOut(event);
 
   return (
     <>
@@ -317,14 +318,13 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
                 </div>
 
                 <button
-                  disabled={isSoldOut}
                   onClick={() => setIsBookingModalOpen(true)}
                   className={`w-full min-h-11 rounded-full py-4 text-[11px] font-bold uppercase tracking-[0.28em] shadow-xl transition-all active:scale-[0.98] sm:py-6 sm:text-xs sm:tracking-[0.4em] ${isSoldOut
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                    ? 'bg-brand-terracotta text-white hover:bg-brand-text'
                     : 'bg-brand-text text-brand-bg hover:bg-brand-gold hover:shadow-brand-gold/20'
                     }`}
                 >
-                  {isSoldOut ? t('common.soldOut', { stripAccents: true }) : t('common.bookNow', { stripAccents: true })}
+                  {isSoldOut ? t('common.notifyMe') : t('common.bookNow', { stripAccents: true })}
                 </button>
 
                 <p className="mt-5 text-center text-[9px] font-bold uppercase tracking-[0.22em] text-brand-text/30 sm:mt-6 sm:tracking-widest">
@@ -335,7 +335,9 @@ const EventDetail: React.FC<EventDetailProps> = ({ slug, onNavigate }) => {
           </div>
         </div>
 
-        {isBookingModalOpen && (
+        {isBookingModalOpen && isSoldOut ? (
+          <NotifyMeModal event={event} onClose={() => setIsBookingModalOpen(false)} />
+        ) : isBookingModalOpen && (
           <BookingModal
             event={event}
             onClose={() => setIsBookingModalOpen(false)}

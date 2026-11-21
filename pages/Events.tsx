@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { WeekploreEvent, BookingFormData } from '../types';
 import BookingModal from '../components/BookingModalV2';
+import NotifyMeModal from '../components/NotifyMeModal';
+import { isEventSoldOut } from '../lib/eventAvailability';
 import EventCard from '../components/EventCard';
 import MessageDisplay from '../components/MessageDisplay';
 import { eventService } from '../services/eventService';
@@ -105,7 +107,9 @@ const Events: React.FC = () => {
           </div>
         )}
 
-        {selectedEvent && (
+        {selectedEvent && isEventSoldOut(selectedEvent) ? (
+          <NotifyMeModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+        ) : selectedEvent && (
           <BookingModal
             event={selectedEvent}
             onClose={() => setSelectedEvent(null)}

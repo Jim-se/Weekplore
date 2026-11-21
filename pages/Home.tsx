@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Send, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { eventService } from '../services/eventService';
 import { useLanguage } from '../lib/LanguageContext';
+import { buildApiUrl } from '../services/api';
 
 interface HomeProps {
   onNavigate: (page: string) => void;
@@ -46,6 +47,29 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [reviewForm, setReviewForm] = useState({ name: '', email: '', start: 5, review: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterNotice, setNewsletterNotice] = useState('');
+  const [newsletterSubmitting, setNewsletterSubmitting] = useState(false);
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newsletterSubmitting) return;
+    setNewsletterSubmitting(true);
+    setNewsletterNotice('');
+    try {
+      const response = await fetch(buildApiUrl('/api/newsletter/subscribe'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail, consent: true }),
+      });
+      if (!response.ok) throw new Error('Signup failed');
+      const result = await response.json();
+      setNewsletterNotice(result.status === 'already_subscribed' ? 'already' : 'success');
+      setNewsletterEmail('');
+    } catch {
+      setNewsletterNotice('error');
+    } finally {
+      setNewsletterSubmitting(false);
+    }
+  };
   const [visibleReviews, setVisibleReviews] = useState<any[]>([]);
   const [people, setPeople] = useState<any[]>([]);
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -200,6 +224,28 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               </svg>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Newsletter signup */}
+      <section aria-labelledby="newsletter-title" className="border-y border-brand-border bg-brand-gold/10 px-4 py-16 sm:px-6 sm:py-24">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-8 text-center">
+          <div>
+            <h2 id="newsletter-title" className="mb-4 text-[34px] font-bold leading-tight text-brand-text serif-font sm:text-[54px]">{t('home.newsletter.title')}</h2>
+            <p className="mx-auto max-w-lg text-[17px] leading-relaxed text-brand-text/75 sm:text-lg">{t('home.newsletter.description')}</p>
+          </div>
+          <form className="w-full max-w-md" onSubmit={handleNewsletterSubmit} aria-busy={newsletterSubmitting}>
+            <label htmlFor="newsletter-email" className="sr-only">{t('home.newsletter.email')}</label>
+            <div className="flex flex-col gap-3 sm:flex-row sm:gap-2 sm:rounded-full sm:border sm:border-brand-text/20 sm:bg-white sm:p-2 sm:transition-shadow sm:focus-within:ring-2 sm:focus-within:ring-brand-gold/40">
+              <input id="newsletter-email" name="email" type="email" autoComplete="email" required maxLength={254}
+                value={newsletterEmail} onChange={(e) => { setNewsletterEmail(e.target.value); setNewsletterNotice(''); }}
+                placeholder="you@example.com" aria-describedby="newsletter-note newsletter-status"
+                className="min-w-0 flex-1 rounded-full border border-brand-text/20 bg-white px-5 py-4 text-base text-brand-text outline-none placeholder:text-brand-text/45 focus:ring-2 focus:ring-brand-gold/40 sm:border-0 sm:bg-transparent sm:py-3 sm:focus:ring-0" />
+              <button type="submit" disabled={newsletterSubmitting} className="disabled:opacity-60 shrink-0 rounded-full bg-brand-text px-7 py-3.5 text-sm font-bold text-brand-bg transition-colors hover:bg-brand-gold hover:text-brand-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-text">{t(newsletterSubmitting ? 'home.newsletter.submitting' : 'home.newsletter.button')}</button>
+            </div>
+            <p id="newsletter-note" className="mx-auto mt-3 max-w-md text-[10px] leading-relaxed text-brand-text/60">{t('home.newsletter.note')}</p>
+            <p id="newsletter-status" role="status" className="text-sm font-medium text-brand-text">{newsletterNotice ? t(`home.newsletter.${newsletterNotice}`) : ''}</p>
+          </form>
         </div>
       </section>
 

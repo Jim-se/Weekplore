@@ -58,6 +58,7 @@ const BookingModalV2: React.FC<BookingModalProps> = ({ event, onClose, onSubmit 
     products: [],
   });
   const [personSelections, setPersonSelections] = useState<Record<string, string>[]>([]);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [postalCodeTouched, setPostalCodeTouched] = useState(false);
   const [postalCodeError, setPostalCodeError] = useState('');
@@ -178,6 +179,7 @@ const BookingModalV2: React.FC<BookingModalProps> = ({ event, onClose, onSubmit 
     try {
       await onSubmit({
         ...formData,
+        newsletterOptIn,
         postalCode: formData.postalCode.replace(/\s/g, ''),
       });
     } finally {
@@ -514,6 +516,17 @@ const BookingModalV2: React.FC<BookingModalProps> = ({ event, onClose, onSubmit 
                   </span>
                 </div>
               </div>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-brand-gold/5 px-4 py-4 text-sm leading-relaxed text-brand-text/80">
+                <input
+                  type="checkbox"
+                  name="newsletterOptIn"
+                  checked={newsletterOptIn}
+                  onChange={e => setNewsletterOptIn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#4b3d2e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand-text"
+                />
+                <span>{t('booking.newsletterOptIn')}</span>
+              </label>
 
               <div className="space-y-2">
                 <button

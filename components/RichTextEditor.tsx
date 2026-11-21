@@ -1,3 +1,5 @@
+import { Image as ImageIcon } from 'lucide-react';
+import ImageExtension from '@tiptap/extension-image';
 import React, { useEffect, useId, useReducer, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { EditorContent, useEditor } from '@tiptap/react';
@@ -17,6 +19,8 @@ interface RichTextEditorProps {
   onBlur?: (value: string) => void;
   placeholder?: string;
   minHeight?: number;
+  onImageUpload?: (file: File) => Promise<string>;
+  imageLabel?: string;
 }
 
 const getEditorValue = (editor: NonNullable<ReturnType<typeof useEditor>>) =>
@@ -28,7 +32,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   onBlur,
   placeholder = 'Detailed experience description...',
   minHeight = 150,
+  onImageUpload,
+  imageLabel = 'Insert image',
 }) => {
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const imageInput = useRef<HTMLInputElement>(null);
   const onChangeRef = useRef(onChange);
   const onBlurRef = useRef(onBlur);
   const previewCloseButtonRef = useRef<HTMLButtonElement>(null);
@@ -58,6 +67,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         trailingNode: false,
         underline: false,
       }),
+      ...(onImageUpload ? [ImageExtension.configure({ allowBase64: false, resize: { enabled: true, directions: ['bottom-left', 'bottom-right', 'top-left', 'top-right'], minWidth: 60, minHeight: 40, alwaysPreserveAspectRatio: true }, HTMLAttributes: { style: 'max-width:100%;height:auto;display:block;margin:16px auto' } })] : []),
       TextStyle,
       Color,
       FontFamily,
@@ -132,7 +142,22 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         refreshToolbar();
       }}
     >
+      <style>{`
+        .rich-text-editor__content [data-resize-handle] { width: 12px; height: 12px; border: 2px solid white; border-radius: 3px; background: #c6a046; box-shadow: 0 0 0 1px #4b3d2e55; z-index: 5; touch-action: none; }
+        .rich-text-editor__content [data-resize-handle="top-left"], .rich-text-editor__content [data-resize-handle="bottom-right"] { cursor: nwse-resize; }
+        .rich-text-editor__content [data-resize-handle="top-right"], .rich-text-editor__content [data-resize-handle="bottom-left"] { cursor: nesw-resize; }
+      `}</style>
       <div className="rich-text-editor__toolbar" role="toolbar" aria-label="Description formatting">
+        {onImageUpload && <><button type="button" className="rich-text-editor__button" disabled={imageBusy || !editor} title={imageLabel} aria-label={imageLabel} onMouseDown={keepSelection} onClick={() => imageInput.current?.click()}>{imageBusy ? '…' : <ImageIcon size={18} aria-hidden="true" />}</button><input ref={imageInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={async event => {
+          const file = event.target.files?.[0]; event.target.value = '';
+          if (!file || !editor) return;
+          const position = editor.state.selection.from;
+          setImageBusy(true); setImageError('');
+          try { const src = await onImageUpload(file); editor.chain().focus().insertContentAt(Math.min(position, editor.state.doc.content.size), [{ type: 'image', attrs: { src, alt: file.name.replace(/\.[^.]+$/, '') } }, { type: 'paragraph' }]).run(); }
+          catch (error) { setImageError(error instanceof Error ? error.message : 'Image upload failed'); }
+          finally { setImageBusy(false); }
+        }} /></>}
+        {imageError && <span role="alert" className="text-xs text-red-700">{imageError}</span>}
         <div className="rich-text-editor__button-group" aria-label="Text style">
           <button
             type="button"
